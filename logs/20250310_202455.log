@@ -1,0 +1,5 @@
+[2025-03-10 20:24:55] 请在 10 秒内选择要执行的步骤（1-4），超时将按顺序执行：
+[2025-03-10 20:24:55] 1. 执行 签到指令(如果配置了batch_file_path)
+[2025-03-10 20:24:55] 2. 执行 三月七助手的一条龙(如果配置了march7th_assistant_path)
+[2025-03-10 20:24:55] 3. 执行 绝区零 和 better的一条龙(如果配置了processes_to_monitor.star_rail, processes_to_monitor.zenless_zone_zero 和 better_gi_path)
+[2025-03-10 20:24:55] 4. 按顺序执行所有步骤

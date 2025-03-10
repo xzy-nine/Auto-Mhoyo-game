@@ -1,0 +1,11 @@
+{
+    "batch_file_path": "E:\\gamedata\\AutoGAME\\MihoyoBBSTools\\main.py",
+    "march7th_assistant_path": "E:\\gamedata\\AutoGAME\\March7thAssistant\\March7th Assistant.exe",
+    "zenless_zone_zero_scheduler_path": "E:\\gamedata\\AutoGAME\\ZenlessZoneZero-OneDragon\\OneDragon Scheduler.exe",
+    "better_gi_path": "E:\\gamedata\\AutoGAME\\BetterGI\\BetterGI.exe",
+    "better_gi_args": ["startOneDragon"],
+    "processes_to_monitor": {
+        "star_rail": "StarRail.exe",
+        "zenless_zone_zero": "ZenlessZoneZero.exe"
+    }
+}
