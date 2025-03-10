@@ -1,0 +1,11 @@
+{
+    "batch_file_path": "米游社签到的 main.py 的路径用于执行签到指令", 
+    "march7th_assistant_path": "三月七助手的 March7th Assistant.exe 的路径", 
+    "zenless_zone_zero_scheduler_path": "绝区零一条龙的 OneDragon Scheduler.exe 的路径", 
+    "better_gi_path": "BetterGI 程序的路径", 
+    "better_gi_args": ["startOneDragon"], 
+    "processes_to_monitor": {
+        "star_rail": "StarRail.exe", 
+        "zenless_zone_zero": "ZenlessZoneZero.exe"
+    }
+}
