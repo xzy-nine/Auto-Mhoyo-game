@@ -8,17 +8,53 @@ import msvcrt
 import re
 from datetime import datetime
 
+# 全局变量，记录日志文件路径，以便在请求管理员权限时可以传递
+log_filepath = None
+log_file = None
+
+def create_log_file():
+    """
+    创建日志文件，文件名为脚本运行开始的时间
+    :return: 日志文件对象和文件路径
+    """
+    log_dir = './logs'
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_files = sorted(os.listdir(log_dir))
+    if len(log_files) >= 5:
+        os.remove(os.path.join(log_dir, log_files[0]))
+    log_filename = datetime.now().strftime('%Y%m%d_%H%M%S') + '.log'
+    log_filepath = os.path.join(log_dir, log_filename)
+    return open(log_filepath, 'w', encoding='utf-8'), log_filepath
+
+def log(message, end='\n'):
+    """
+    添加时间戳到日志
+    :param message: 日志消息
+    :param end: 结束符
+    """
+    global log_file
+    if log_file is None:
+        return  # 避免在日志文件未初始化前调用
+        
+    timestamp = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
+    formatted_message = f"{timestamp} {message}"
+    print(formatted_message, end=end)
+    log_file.write(formatted_message + '\n')
+    log_file.flush()
+
 def request_admin_privileges():
     """
     请求管理员权限，如果没有管理员权限则重新启动脚本并请求权限
     """
     try:
         if not ctypes.windll.shell32.IsUserAnAdmin():
-            log("请求管理员权限...")
+            print("请求管理员权限...")  # 使用print而不是log，因为log文件可能还未创建
+            # 我们不再在此处创建日志文件
             ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
             sys.exit(0)
     except Exception as e:
-        log(f"请求管理员权限失败: {e}")
+        print(f"请求管理员权限失败: {e}")
         sys.exit(1)
 
 def is_admin():
@@ -110,35 +146,6 @@ def load_config():
         log(f"加载配置文件失败: {e}")
         return {}
 
-def create_log_file():
-    """
-    创建日志文件，文件名为脚本运行开始的时间
-    :return: 日志文件对象
-    """
-    log_dir = './logs'
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    log_files = sorted(os.listdir(log_dir))
-    if len(log_files) >= 5:
-        os.remove(os.path.join(log_dir, log_files[0]))
-    log_filename = datetime.now().strftime('%Y%m%d_%H%M%S') + '.log'
-    log_filepath = os.path.join(log_dir, log_filename)
-    return open(log_filepath, 'w', encoding='utf-8')
-
-log_file = create_log_file()
-
-def log(message, end='\n'):
-    """
-    添加时间戳到日志
-    :param message: 日志消息
-    :param end: 结束符
-    """
-    timestamp = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
-    formatted_message = f"{timestamp} {message}"
-    print(formatted_message, end=end)
-    log_file.write(formatted_message + '\n')
-    log_file.flush()
-
 def monitor_process(process_name, start_command, args=None):
     """
     监控指定进程，如果进程未运行则启动它，当进程关闭后结束监控
@@ -208,39 +215,55 @@ def parse_previous_logs():
         with open(os.path.join(log_dir, previous_log_file), 'r', encoding='utf-8') as f:
             content = f.read()
             
-            # 寻找各步骤的开始和结束时间
+            # 定义一个辅助函数来安全地解析日期时间
+            def safe_parse_datetime(dt_str):
+                try:
+                    # 清理日期字符串，确保没有额外的字符
+                    clean_dt_str = dt_str.strip()
+                    # 移除可能的中括号
+                    if clean_dt_str.startswith('[') and ']' in clean_dt_str:
+                        clean_dt_str = clean_dt_str[1:clean_dt_str.find(']')]
+                    return datetime.strptime(clean_dt_str, '%Y-%m-%d %H:%M:%S')
+                except ValueError as e:
+                    log(f"解析日期时间出错: {e}, 原始字符串: '{dt_str}'")
+                    return None
+            
             # 签到指令
             if "执行签到指令" in content:
                 sign_in_match = re.search(r'\[(.*?)\] 执行签到指令.*?\[(.*?)\] 签到指令执行完成', content, re.DOTALL)
                 if sign_in_match:
-                    start_time = datetime.strptime(sign_in_match.group(1), '%Y-%m-%d %H:%M:%S')
-                    end_time = datetime.strptime(sign_in_match.group(2), '%Y-%m-%d %H:%M:%S')
-                    step_durations["签到指令"] = (end_time - start_time).total_seconds()
+                    start_time = safe_parse_datetime(sign_in_match.group(1))
+                    end_time = safe_parse_datetime(sign_in_match.group(2))
+                    if start_time and end_time:
+                        step_durations["签到指令"] = (end_time - start_time).total_seconds()
             
             # 三月七助手
             if "执行三月七助手的一条龙" in content:
                 march7_match = re.search(r'\[(.*?)\] 执行三月七助手的一条龙.*?\[(.*?)\] 三月七助手执行完成', content, re.DOTALL)
                 if march7_match:
-                    start_time = datetime.strptime(march7_match.group(1), '%Y-%m-%d %H:%M:%S')
-                    end_time = datetime.strptime(march7_match.group(2), '%Y-%m-%d %H:%M:%S')
-                    step_durations["三月七助手"] = (end_time - start_time).total_seconds()
+                    start_time = safe_parse_datetime(march7_match.group(1))
+                    end_time = safe_parse_datetime(march7_match.group(2))
+                    if start_time and end_time:
+                        step_durations["三月七助手"] = (end_time - start_time).total_seconds()
             
             # 绝区零
             if "执行绝区零的一条龙" in content:
                 zzz_match = re.search(r'\[(.*?)\] 执行绝区零的一条龙.*?\[(.*?)\] 绝区零执行完成', content, re.DOTALL)
                 if zzz_match:
-                    start_time = datetime.strptime(zzz_match.group(1), '%Y-%m-%d %H:%M:%S')
-                    end_time = datetime.strptime(zzz_match.group(2), '%Y-%m-%d %H:%M:%S')
-                    step_durations["绝区零"] = (end_time - start_time).total_seconds()
+                    start_time = safe_parse_datetime(zzz_match.group(1))
+                    end_time = safe_parse_datetime(zzz_match.group(2))
+                    if start_time and end_time:
+                        step_durations["绝区零"] = (end_time - start_time).total_seconds()
             
             # BetterGI
             if "执行BetterGI的一条龙" in content:
                 bettergi_start_match = re.search(r'\[(.*?)\] 执行BetterGI的一条龙', content)
-                bettergi_end_match = re.search(r'\[(.*?)\] BetterGI执行完成', content)
+                bettergi_end_match = re.search(r'\[(.*?)\] BetterGI已启动', content) or re.search(r'\[(.*?)\] BetterGI执行完成', content)
                 if bettergi_start_match and bettergi_end_match:
-                    start_time = datetime.strptime(bettergi_start_match.group(1), '%Y-%m-%d %H:%M:%S')
-                    end_time = datetime.strptime(bettergi_end_match.group(1), '%Y-%m-%d %H:%M:%S')
-                    step_durations["BetterGI"] = (end_time - start_time).total_seconds()
+                    start_time = safe_parse_datetime(bettergi_start_match.group(1))
+                    end_time = safe_parse_datetime(bettergi_end_match.group(1))
+                    if start_time and end_time:
+                        step_durations["BetterGI"] = (end_time - start_time).total_seconds()
                     
     except Exception as e:
         log(f"解析日志文件时出错: {e}")
@@ -409,11 +432,18 @@ def main():
     """
     主函数，执行脚本的主要逻辑
     """
+    global log_file, log_filepath
+    
     os.system('chcp 65001 >nul')  # 设置编码为UTF-8
 
+    # 先检查管理员权限，避免创建日志后再请求权限
     if not is_admin():
         request_admin_privileges()
 
+    # 创建日志文件
+    log_file, log_filepath = create_log_file()
+
+    # 后续代码...
     if not check_config_exists():
         log("程序即将退出...")
         time.sleep(5)
@@ -433,4 +463,5 @@ if __name__ == "__main__":
     try:
         main()
     finally:
-        log_file.close()
+        if log_file:
+            log_file.close()
