@@ -6,6 +6,7 @@
     "better_gi_args": ["startOneDragon"], 
     "processes_to_monitor": {
         "star_rail": "StarRail.exe", 
-        "zenless_zone_zero": "ZenlessZoneZero.exe"
+        "zenless_zone_zero": "ZenlessZoneZero.exe",
+        "genshin": "YuanShen.exe"
     }
 }

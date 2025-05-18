@@ -187,13 +187,14 @@ def parse_previous_logs():
     if not os.path.exists(log_dir):
         return None, {}
     
+    # 获取所有日志文件并按照名称排序
     log_files = sorted(os.listdir(log_dir))
-    if not log_files:
+    if len(log_files) <= 1:  # 如果只有当前日志或者没有日志
         return None, {}
     
-    # 获取最近的日志文件
-    latest_log_file = log_files[-1]
-    last_run_time = latest_log_file.split('.')[0]  # 从文件名获取运行时间
+    # 获取倒数第二个日志文件（上一次的日志），而不是最新的（当前正在写入的）
+    previous_log_file = log_files[-2]
+    last_run_time = previous_log_file.split('.')[0]  # 从文件名获取运行时间
     
     # 解析各步骤的执行时长
     step_durations = {
@@ -204,7 +205,7 @@ def parse_previous_logs():
     }
     
     try:
-        with open(os.path.join(log_dir, latest_log_file), 'r', encoding='utf-8') as f:
+        with open(os.path.join(log_dir, previous_log_file), 'r', encoding='utf-8') as f:
             content = f.read()
             
             # 寻找各步骤的开始和结束时间
@@ -235,7 +236,7 @@ def parse_previous_logs():
             # BetterGI
             if "执行BetterGI的一条龙" in content:
                 bettergi_start_match = re.search(r'\[(.*?)\] 执行BetterGI的一条龙', content)
-                bettergi_end_match = re.search(r'\[(.*?)\] BetterGI已启动', content)
+                bettergi_end_match = re.search(r'\[(.*?)\] BetterGI执行完成', content)
                 if bettergi_start_match and bettergi_end_match:
                     start_time = datetime.strptime(bettergi_start_match.group(1), '%Y-%m-%d %H:%M:%S')
                     end_time = datetime.strptime(bettergi_end_match.group(1), '%Y-%m-%d %H:%M:%S')
@@ -379,6 +380,19 @@ def execute_steps(config, choice):
             try:
                 start_process(config['better_gi_path'], args=config.get('better_gi_args', []))
                 log("BetterGI已启动")
+                if config.get('processes_to_monitor', {}).get('genshin'):
+                    start_time = time.time()
+                    while time.time() - start_time < 60:
+                        if is_process_running(config['processes_to_monitor']['genshin']):
+                            monitor_process(config['processes_to_monitor']['genshin'], None, None)
+                            break
+                        time.sleep(5)
+                    else:
+                        log("原神进程未在1分钟内启动，请检查BetterGI设置", end='\n\n')
+                else:
+                    log("未配置genshin进程名，无法监控游戏进程")
+                    time.sleep(10)
+                log("BetterGI执行完成")
             except Exception as e:
                 log(f"启动BetterGI时出错: {e}")
         else:
