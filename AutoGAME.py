@@ -217,6 +217,7 @@ def execute_steps(config, choice):
             log("batch_file_path 为空，跳过执行")
 
     if choice is None or choice == 2:
+        log("执行三月七助手的一条龙")
         if config.get('march7th_assistant_path'):
             log("执行三月七助手的一条龙")
             try:
@@ -229,16 +230,16 @@ def execute_steps(config, choice):
                             break
                         time.sleep(5)
                     else:
-                        log("星穹铁道进程未在1分钟内启动，结束程序", end='\n\n')
-                        sys.exit("星穹铁道进程未在1分钟内启动，程序终止")
+                        log("星穹铁道进程未在1分钟内启动,结束程序", end='\n\n')
+                        sys.exit("星穹铁道进程未在1分钟内启动,程序终止")
                 else:
-                    log("未配置star_rail进程名，无法监控游戏进程")
+                    log("未配置star_rail进程名,无法监控游戏进程")
                     time.sleep(10)
                 log("三月七助手执行完成")
             except Exception as e:
                 log(f"执行三月七助手时出错: {e}")
         else:
-            log("march7th_assistant_path 为空，跳过执行")
+            log("march7th_assistant_path 为空,跳过执行")
 
     if choice is None or choice == 3:
         log("执行绝区零的一条龙")
@@ -283,6 +284,7 @@ def execute_steps(config, choice):
         execute_steps(config, 2)
         execute_steps(config, 3)
         execute_steps(config, 4)
+
 def main():
     """
     主函数，执行脚本的主要逻辑

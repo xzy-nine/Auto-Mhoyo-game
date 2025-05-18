@@ -1,4 +1,5 @@
 # 忽略 log 目录
-log/
+logs/
 # 忽略 config.json 文件
 config.json
+
