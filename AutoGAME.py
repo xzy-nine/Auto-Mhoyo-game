@@ -5,6 +5,7 @@ import ctypes
 import sys
 import json
 import msvcrt
+import re
 from datetime import datetime
 
 def request_admin_privileges():
@@ -177,12 +178,116 @@ def monitor_process(process_name, start_command, args=None):
     time.sleep(15)
     log(f"结束监控进程: {process_name}")
 
+def parse_previous_logs():
+    """
+    解析上一次的日志文件，提取运行时间和各步骤的执行时长
+    :return: 上次运行时间和各步骤的执行时长信息
+    """
+    log_dir = './logs'
+    if not os.path.exists(log_dir):
+        return None, {}
+    
+    log_files = sorted(os.listdir(log_dir))
+    if not log_files:
+        return None, {}
+    
+    # 获取最近的日志文件
+    latest_log_file = log_files[-1]
+    last_run_time = latest_log_file.split('.')[0]  # 从文件名获取运行时间
+    
+    # 解析各步骤的执行时长
+    step_durations = {
+        "签到指令": None,
+        "三月七助手": None,
+        "绝区零": None,
+        "BetterGI": None
+    }
+    
+    try:
+        with open(os.path.join(log_dir, latest_log_file), 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+            # 寻找各步骤的开始和结束时间
+            # 签到指令
+            if "执行签到指令" in content:
+                sign_in_match = re.search(r'\[(.*?)\] 执行签到指令.*?\[(.*?)\] 签到指令执行完成', content, re.DOTALL)
+                if sign_in_match:
+                    start_time = datetime.strptime(sign_in_match.group(1), '%Y-%m-%d %H:%M:%S')
+                    end_time = datetime.strptime(sign_in_match.group(2), '%Y-%m-%d %H:%M:%S')
+                    step_durations["签到指令"] = (end_time - start_time).total_seconds()
+            
+            # 三月七助手
+            if "执行三月七助手的一条龙" in content:
+                march7_match = re.search(r'\[(.*?)\] 执行三月七助手的一条龙.*?\[(.*?)\] 三月七助手执行完成', content, re.DOTALL)
+                if march7_match:
+                    start_time = datetime.strptime(march7_match.group(1), '%Y-%m-%d %H:%M:%S')
+                    end_time = datetime.strptime(march7_match.group(2), '%Y-%m-%d %H:%M:%S')
+                    step_durations["三月七助手"] = (end_time - start_time).total_seconds()
+            
+            # 绝区零
+            if "执行绝区零的一条龙" in content:
+                zzz_match = re.search(r'\[(.*?)\] 执行绝区零的一条龙.*?\[(.*?)\] 绝区零执行完成', content, re.DOTALL)
+                if zzz_match:
+                    start_time = datetime.strptime(zzz_match.group(1), '%Y-%m-%d %H:%M:%S')
+                    end_time = datetime.strptime(zzz_match.group(2), '%Y-%m-%d %H:%M:%S')
+                    step_durations["绝区零"] = (end_time - start_time).total_seconds()
+            
+            # BetterGI
+            if "执行BetterGI的一条龙" in content:
+                bettergi_start_match = re.search(r'\[(.*?)\] 执行BetterGI的一条龙', content)
+                bettergi_end_match = re.search(r'\[(.*?)\] BetterGI已启动', content)
+                if bettergi_start_match and bettergi_end_match:
+                    start_time = datetime.strptime(bettergi_start_match.group(1), '%Y-%m-%d %H:%M:%S')
+                    end_time = datetime.strptime(bettergi_end_match.group(1), '%Y-%m-%d %H:%M:%S')
+                    step_durations["BetterGI"] = (end_time - start_time).total_seconds()
+                    
+    except Exception as e:
+        log(f"解析日志文件时出错: {e}")
+        
+    return last_run_time, step_durations
+
+def format_duration(seconds):
+    """
+    将秒数格式化为时分秒的形式
+    :param seconds: 秒数
+    :return: 格式化后的时间字符串
+    """
+    if seconds is None:
+        return "未执行"
+    
+    hours, remainder = divmod(int(seconds), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    if hours > 0:
+        return f"{hours}小时{minutes}分钟{seconds}秒"
+    elif minutes > 0:
+        return f"{minutes}分钟{seconds}秒"
+    else:
+        return f"{seconds}秒"
+
 def wait_for_user_choice(timeout):
     """
     等待用户选择要执行的步骤
     :param timeout: 超时时间（秒）
     :return: 用户选择的步骤编号
     """
+    # 解析上次的日志信息
+    last_run_time, step_durations = parse_previous_logs()
+    
+    # 显示上次运行信息
+    log("=" * 50)
+    if last_run_time:
+        formatted_time = f"{last_run_time[:4]}-{last_run_time[4:6]}-{last_run_time[6:8]} {last_run_time[9:11]}:{last_run_time[11:13]}:{last_run_time[13:15]}"
+        log(f"上次运行时间: {formatted_time}")
+        log("各步骤执行时长:")
+        log(f"  1. 签到指令: {format_duration(step_durations['签到指令'])}")
+        log(f"  2. 三月七助手: {format_duration(step_durations['三月七助手'])}")
+        log(f"  3. 绝区零: {format_duration(step_durations['绝区零'])}")
+        log(f"  4. BetterGI: {format_duration(step_durations['BetterGI'])}")
+    else:
+        log("没有找到上次运行的记录")
+    log("=" * 50)
+    
     print(f"请在 {timeout} 秒内选择要执行的步骤（1-5），超时将按顺序执行：")
     print("1. 执行 签到指令")
     print("2. 执行 三月七助手的一条龙")
@@ -209,9 +314,10 @@ def execute_steps(config, choice):
         if config.get('batch_file_path'):
             log("执行签到指令")
             try:
-                process = start_process(config['batch_file_path'], run_as_script=True)
-                process.wait()
+                start_process(config['batch_file_path'], run_as_script=True)
+                log("签到指令执行完成")
             except Exception as e:
+                log(f"执行签到指令时出错: {e}")
                 log("签到指令执行完成")
         else:
             log("batch_file_path 为空，跳过执行")
