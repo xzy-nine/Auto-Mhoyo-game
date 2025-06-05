@@ -1,12 +1,48 @@
 {
-    "batch_file_path": "米游社签到的 main.py 的路径用于执行签到指令", 
-    "march7th_assistant_path": "三月七助手的 March7th Assistant.exe 的路径", 
-    "zenless_zone_zero_scheduler_path": "绝区零一条龙的 OneDragon Scheduler.exe 的路径", 
-    "better_gi_path": "BetterGI 程序的路径", 
-    "better_gi_args": ["startOneDragon"], 
-    "processes_to_monitor": {
-        "star_rail": "StarRail.exe", 
-        "zenless_zone_zero": "ZenlessZoneZero.exe",
-        "genshin": "YuanShen.exe"
-    }
+    "games": {
+        "mihoyo_sign": {
+            "name": "米游社签到",
+            "enabled": true,
+            "executable_path": "【必须修改】请替换为您的MihoyoBBSTools项目中main.py文件的完整路径，如: E:\\\\gamedata\\\\AutoGAME\\\\MihoyoBBSTools\\\\main.py",
+            "run_as_script": true,
+            "args": [],
+            "wait_timeout": 30,
+            "post_execution_wait": 5
+        },
+        "star_rail": {
+            "name": "崩坏:星穹铁道",
+            "enabled": true,
+            "executable_path": "【必须修改】请替换为您的March7thAssistant项目中March7th Assistant.exe文件的完整路径",
+            "run_as_script": false,
+            "args": [],
+            "process_name": "StarRail.exe",
+            "launch_timeout": 60,
+            "post_execution_wait": 15
+        },
+        "zenless_zone_zero": {
+            "name": "绝区零",
+            "enabled": true,
+            "executable_path": "【必须修改】请替换为您的ZenlessZoneZero-OneDragon项目中OneDragon Scheduler.exe文件的完整路径",
+            "run_as_script": false,
+            "args": [],
+            "process_name": "ZenlessZoneZero.exe",
+            "launch_timeout": 60,
+            "post_execution_wait": 15
+        },
+        "genshin": {
+            "name": "原神",
+            "enabled": true,
+            "executable_path": "【必须修改】请替换为您的BetterGI项目中BetterGI.exe文件的完整路径",
+            "run_as_script": false,
+            "args": ["startOneDragon"],
+            "process_name": "YuanShen.exe",
+            "launch_timeout": 60,
+            "post_execution_wait": 15
+        }
+    },
+    "global_settings": {
+        "user_choice_timeout": 10,
+        "exit_countdown": 3,
+        "max_log_files": 5,
+    },
 }
