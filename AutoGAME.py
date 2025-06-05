@@ -49,7 +49,7 @@ def request_admin_privileges():
     """
     try:
         if not ctypes.windll.shell32.IsUserAnAdmin():
-            print("请求管理员权限...")  # 使用print而不是log，因为log文件可能还未创建
+            print("正在请求管理员权限...")  # 使用print而不是log，因为log文件可能还未创建
             # 我们不再在此处创建日志文件
             ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
             sys.exit(0)
@@ -74,7 +74,7 @@ def start_process(command, run_as_script=False, args=None):
     :param run_as_script: 是否以脚本方式运行
     :param args: 传递给命令的参数列表
     """
-    print(f"尝试启动进程: {command} {' '.join(args) if args else ''}")
+    log(f"启动进程: {os.path.basename(command)}")
     if run_as_script:
         # 以脚本方式运行
         subprocess.run([sys.executable, command] + (args if args else []))
@@ -174,12 +174,37 @@ def monitor_process(process_name, start_command, args=None):
             log(f"启动 {process_name} 失败，请检查路径或权限")
             return
 
+    # 静默监控，只显示最终运行时间
+    log(f"正在监控 {process_name}，请等待游戏自动完成...")
+    
+    # 记录监控开始时间用于显示进度
+    monitor_start = time.time()
+    last_update = 0
+    
     while is_process_running(process_name):
-        elapsed_time = time.time() - start_time
-        log(f"\r{process_name} 已经运行了 {int(elapsed_time)} 秒                ", end='')
+        current_time = time.time()
+        # 每分钟显示一次进度信息
+        if current_time - monitor_start >= last_update + 60:
+            minutes = int((current_time - monitor_start) / 60)
+            log(f"{process_name} 监控中... 已监控 {minutes} 分钟")
+            last_update = minutes * 60
         time.sleep(5)
 
-    log(f"\n{process_name} 不在运行")
+    # 计算总运行时间
+    if start_time:
+        total_elapsed_time = time.time() - start_time
+        hours, remainder = divmod(int(total_elapsed_time), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        if hours > 0:
+            time_str = f"{hours}小时{minutes}分钟{seconds}秒"
+        elif minutes > 0:
+            time_str = f"{minutes}分钟{seconds}秒"
+        else:
+            time_str = f"{seconds}秒"
+        
+        log(f"{process_name} 运行完成，总耗时: {time_str}")
+    
     log(f"监控程序检测到{process_name}已关闭，任务已完成")
     log(f"等待15秒后继续...")
     time.sleep(15)
@@ -195,10 +220,10 @@ def parse_previous_logs():
         return None, {}
     
     # 获取所有日志文件并按照名称排序
-    log_files = sorted(os.listdir(log_dir))
+    log_files = sorted([f for f in os.listdir(log_dir) if f.endswith('.log')])
     if len(log_files) <= 1:  # 如果只有当前日志或者没有日志
         return None, {}
-    
+
     # 获取倒数第二个日志文件（上一次的日志），而不是最新的（当前正在写入的）
     previous_log_file = log_files[-2]
     last_run_time = previous_log_file.split('.')[0]  # 从文件名获取运行时间
@@ -215,58 +240,42 @@ def parse_previous_logs():
         with open(os.path.join(log_dir, previous_log_file), 'r', encoding='utf-8') as f:
             content = f.read()
             
-            # 定义一个辅助函数来安全地解析日期时间
-            def safe_parse_datetime(dt_str):
+            def parse_datetime_silent(dt_str):
+                """解析日期时间字符串，静默处理错误"""
                 try:
-                    # 清理日期字符串，确保没有额外的字符
-                    clean_dt_str = dt_str.strip()
-                    # 移除可能的中括号
-                    if clean_dt_str.startswith('[') and ']' in clean_dt_str:
-                        clean_dt_str = clean_dt_str[1:clean_dt_str.find(']')]
-                    return datetime.strptime(clean_dt_str, '%Y-%m-%d %H:%M:%S')
-                except ValueError as e:
-                    log(f"解析日期时间出错: {e}, 原始字符串: '{dt_str}'")
+                    # 使用正则表达式提取时间戳
+                    date_match = re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]', dt_str)
+                    if date_match:
+                        return datetime.strptime(date_match.group(1), '%Y-%m-%d %H:%M:%S')
+                    return None
+                except:
                     return None
             
-            # 签到指令
-            if "执行签到指令" in content:
-                sign_in_match = re.search(r'\[(.*?)\] 执行签到指令.*?\[(.*?)\] 签到指令执行完成', content, re.DOTALL)
-                if sign_in_match:
-                    start_time = safe_parse_datetime(sign_in_match.group(1))
-                    end_time = safe_parse_datetime(sign_in_match.group(2))
-                    if start_time and end_time:
-                        step_durations["签到指令"] = (end_time - start_time).total_seconds()
+            # 使用更精确的正则表达式匹配模式
+            patterns = {
+                "签到指令": (r'\[([^\]]+)\] 执行签到指令', r'\[([^\]]+)\] 签到指令执行完成'),
+                "三月七助手": (r'\[([^\]]+)\] 执行三月七助手的一条龙', r'\[([^\]]+)\] 三月七助手执行完成'),
+                "绝区零": (r'\[([^\]]+)\] 执行绝区零的一条龙', r'\[([^\]]+)\] 绝区零执行完成'),
+                "BetterGI": (r'\[([^\]]+)\] 执行BetterGI的一条龙', r'\[([^\]]+)\] BetterGI执行完成')
+            }
             
-            # 三月七助手
-            if "执行三月七助手的一条龙" in content:
-                march7_match = re.search(r'\[(.*?)\] 执行三月七助手的一条龙.*?\[(.*?)\] 三月七助手执行完成', content, re.DOTALL)
-                if march7_match:
-                    start_time = safe_parse_datetime(march7_match.group(1))
-                    end_time = safe_parse_datetime(march7_match.group(2))
+            for step, (start_pattern, end_pattern) in patterns.items():
+                start_match = re.search(start_pattern, content)
+                end_match = re.search(end_pattern, content)
+                
+                # 如果没有找到结束标记，尝试其他可能的结束模式
+                if not end_match and step == "BetterGI":
+                    end_match = re.search(r'\[([^\]]+)\] BetterGI已启动', content)
+                
+                if start_match and end_match:
+                    start_time = parse_datetime_silent(start_match.group(0))
+                    end_time = parse_datetime_silent(end_match.group(0))
                     if start_time and end_time:
-                        step_durations["三月七助手"] = (end_time - start_time).total_seconds()
-            
-            # 绝区零
-            if "执行绝区零的一条龙" in content:
-                zzz_match = re.search(r'\[(.*?)\] 执行绝区零的一条龙.*?\[(.*?)\] 绝区零执行完成', content, re.DOTALL)
-                if zzz_match:
-                    start_time = safe_parse_datetime(zzz_match.group(1))
-                    end_time = safe_parse_datetime(zzz_match.group(2))
-                    if start_time and end_time:
-                        step_durations["绝区零"] = (end_time - start_time).total_seconds()
-            
-            # BetterGI
-            if "执行BetterGI的一条龙" in content:
-                bettergi_start_match = re.search(r'\[(.*?)\] 执行BetterGI的一条龙', content)
-                bettergi_end_match = re.search(r'\[(.*?)\] BetterGI已启动', content) or re.search(r'\[(.*?)\] BetterGI执行完成', content)
-                if bettergi_start_match and bettergi_end_match:
-                    start_time = safe_parse_datetime(bettergi_start_match.group(1))
-                    end_time = safe_parse_datetime(bettergi_end_match.group(1))
-                    if start_time and end_time:
-                        step_durations["BetterGI"] = (end_time - start_time).total_seconds()
+                        step_durations[step] = (end_time - start_time).total_seconds()
                     
-    except Exception as e:
-        log(f"解析日志文件时出错: {e}")
+    except Exception:
+        # 静默处理异常
+        pass
         
     return last_run_time, step_durations
 
@@ -312,20 +321,22 @@ def wait_for_user_choice(timeout):
         log("没有找到上次运行的记录")
     log("=" * 50)
     
-    print(f"请在 {timeout} 秒内选择要执行的步骤（1-5），超时将按顺序执行：")
-    print("1. 执行 签到指令")
-    print("2. 执行 三月七助手的一条龙")
-    print("3. 执行 绝区零的一条龙")
-    print("4. 执行 BetterGI的一条龙")
-    print("5. 按顺序执行所有步骤")
+    # 使用log函数记录选择提示，但同时也用print显示给用户
+    log(f"请在 {timeout} 秒内选择要执行的步骤（1-5），超时将按顺序执行：")
+    log("1. 执行 签到指令")
+    log("2. 执行 三月七助手的一条龙")
+    log("3. 执行 绝区零的一条龙")
+    log("4. 执行 BetterGI的一条龙")
+    log("5. 按顺序执行所有步骤")
+    
     start_time = time.time()
     while time.time() - start_time < timeout:
         if msvcrt.kbhit():
             choice = msvcrt.getch().decode('utf-8')
             if choice in ['1', '2', '3', '4', '5']:
-                log(f"\n选择了选项 {choice}")
+                log(f"选择了选项 {choice}")
                 return int(choice)
-    log("\n超时，将按顺序执行所有步骤")
+    log("超时，将按顺序执行所有步骤")
     return None
 
 def execute_steps(config, choice):
