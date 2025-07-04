@@ -137,12 +137,13 @@ def start_process(command, run_as_script=False, args=None):
     """
     log(f"启动进程: {os.path.basename(command)}")
     if run_as_script:
-        # 以脚本方式运行
+        # 以脚本方式运行 - 使用阻塞调用，因为脚本通常执行完就结束
         subprocess.run([sys.executable, command] + (args if args else []))
     else:
         if args:
-            # 运行带有参数的命令
-            subprocess.run([command] + args)
+            # 运行带有参数的命令 - 使用非阻塞调用
+            subprocess.Popen([command] + args)
+            log(f"已启动进程: {os.path.basename(command)} (非阻塞)")
         else:
             # 直接启动文件
             os.startfile(command)
@@ -154,9 +155,15 @@ def is_process_running(process_name):
     :return: 进程是否正在运行
     """
     try:
-        output = subprocess.check_output(f'tasklist | find /i "{process_name}"', shell=True)
-        return process_name.lower() in output.decode('utf-8').lower()
+        # 使用更可靠的tasklist命令
+        output = subprocess.check_output(['tasklist', '/fi', f'imagename eq {process_name}'], 
+                                       creationflags=subprocess.CREATE_NO_WINDOW)
+        output_str = output.decode('utf-8', errors='ignore')
+        return process_name.lower() in output_str.lower()
     except subprocess.CalledProcessError:
+        return False
+    except Exception as e:
+        log(f"检查进程时出错: {e}")
         return False
 
 def check_config_exists():
@@ -220,15 +227,10 @@ def load_config():
         with open('./config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
             
-            # 检查是否为旧格式配置，如果是则自动迁移
+            # 检查配置文件格式
             if 'games' not in config:
-                # 检查是否包含旧格式的字段
-                old_format_keys = ['batch_file_path', 'march7th_assistant_path', 'zenless_zone_zero_scheduler_path', 'better_gi_path']
-                if any(key in config for key in old_format_keys):
-                    config = migrate_old_config(config)
-                else:
-                    log("配置文件格式错误，请参考 config.json.template 创建正确的配置文件")
-                    return None
+                log("配置文件格式错误，请参考 config.json.template 创建正确的配置文件")
+                return None
                 
             # 检查每个游戏的配置
             games = config.get('games', {})
@@ -251,9 +253,6 @@ def load_config():
             global_settings.setdefault('user_choice_timeout', 10)
             global_settings.setdefault('exit_countdown', 3)
             global_settings.setdefault('max_log_files', 5)
-            
-            # 验证并修复配置
-            config = validate_and_fix_config(config)
             
             return config
             
@@ -315,11 +314,15 @@ def execute_game_automation(game_key, game_config):
             start_time = time.time()
             
             log(f"等待 {game_name} 游戏进程启动 (超时: {launch_timeout}秒)...")
+            log(f"监控进程名: {process_name}")
             
             # 等待进程启动
+            process_found = False
             while time.time() - start_time < launch_timeout:
                 if is_process_running(process_name):
+                    console_print("")  # 换行
                     log(f"{game_name} 游戏进程已启动，开始监控")
+                    process_found = True
                     monitor_process(process_name, None, None)
                     break
                 
@@ -328,10 +331,21 @@ def execute_game_automation(game_key, game_config):
                 remaining = launch_timeout - elapsed
                 console_print(f"\r等待 {game_name} 启动... 剩余: {remaining} 秒", end='')
                 time.sleep(1)
-            else:
+            
+            if not process_found:
                 console_print("")
                 log(f"{game_name} 游戏进程未在 {launch_timeout} 秒内启动")
                 log("这可能是正常的，如果游戏已经启动并完成了自动化任务")
+                
+                # 即使没有检测到游戏进程，也等待一段时间以防任务正在执行
+                wait_time = game_config.get('post_execution_wait', 15)
+                log(f"等待 {wait_time} 秒以确保任务完成...")
+                
+                for i in range(wait_time, 0, -1):
+                    console_print(f"\r等待 {i} 秒...", end='')
+                    time.sleep(1)
+                console_print("")
+                
                 return False
         else:
             # 没有配置进程名，等待默认时间
@@ -650,157 +664,6 @@ def execute_steps(config, choice):
         log("用户中断程序执行")
         raise
 
-def migrate_old_config(old_config):
-    """
-    将旧格式的配置迁移到新格式
-    :param old_config: 旧格式配置字典
-    :return: 新格式配置字典
-    """
-    log("检测到旧格式配置，正在自动迁移...")
-    
-    new_config = {
-        "games": {},
-        "global_settings": {
-            "user_choice_timeout": 10,
-            "exit_countdown": 3,
-            "max_log_files": 5
-        }
-    }
-    
-    # 迁移签到配置
-    if old_config.get('batch_file_path'):
-        new_config["games"]["mihoyo_sign"] = {
-            "name": "米游社签到",
-            "enabled": True,
-            "executable_path": old_config['batch_file_path'],
-            "run_as_script": True,
-            "args": [],
-            "wait_timeout": 30,
-            "post_execution_wait": 5
-        }
-    
-    # 迁移星穹铁道配置
-    if old_config.get('march7th_assistant_path'):
-        new_config["games"]["star_rail"] = {
-            "name": "崩坏:星穹铁道",
-            "enabled": True,
-            "executable_path": old_config['march7th_assistant_path'],
-            "run_as_script": False,
-            "args": [],
-            "process_name": old_config.get('processes_to_monitor', {}).get('star_rail', 'StarRail.exe'),
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        }
-    
-    # 迁移绝区零配置
-    if old_config.get('zenless_zone_zero_scheduler_path'):
-        new_config["games"]["zenless_zone_zero"] = {
-            "name": "绝区零",
-            "enabled": True,
-            "executable_path": old_config['zenless_zone_zero_scheduler_path'],
-            "run_as_script": False,
-            "args": [],
-            "process_name": old_config.get('processes_to_monitor', {}).get('zenless_zone_zero', 'ZenlessZoneZero.exe'),
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        }
-    
-    # 迁移原神配置
-    if old_config.get('better_gi_path'):
-        new_config["games"]["genshin"] = {
-            "name": "原神",
-            "enabled": True,
-            "executable_path": old_config['better_gi_path'],
-            "run_as_script": False,
-            "args": old_config.get('better_gi_args', []),
-            "process_name": old_config.get('processes_to_monitor', {}).get('genshin', 'YuanShen.exe'),
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        }
-    
-    # 保存迁移后的配置
-    try:
-        with open('./config.json.backup', 'w', encoding='utf-8') as f:
-            json.dump(old_config, f, ensure_ascii=False, indent=4)
-        log("旧配置已备份至 config.json.backup")
-        
-        with open('./config.json', 'w', encoding='utf-8') as f:
-            json.dump(new_config, f, ensure_ascii=False, indent=4)
-        log("配置已成功迁移到新格式")
-        
-    except Exception as e:
-        log(f"保存迁移配置时出错: {e}")
-        return old_config
-    
-    return new_config
-
-def validate_and_fix_config(config):
-    """
-    验证并修复配置文件中的问题
-    :param config: 配置字典
-    :return: 修复后的配置字典
-    """
-    if not config or 'games' not in config:
-        return config
-        
-    fixed = False
-    games = config.get('games', {})
-    
-    for game_key, game_config in games.items():
-        # 检查必要字段
-        required_fields = {
-            'name': f'游戏{game_key}',
-            'enabled': True,
-            'executable_path': '',
-            'run_as_script': False,
-            'args': [],
-            'launch_timeout': 60,
-            'post_execution_wait': 15
-        }
-        
-        for field, default_value in required_fields.items():
-            if field not in game_config:
-                game_config[field] = default_value
-                fixed = True
-                log(f"为游戏 {game_key} 添加缺失字段 {field}: {default_value}")
-        
-        # 特殊处理：如果路径为空或"empty"，禁用该游戏
-        if not game_config.get('executable_path') or game_config.get('executable_path') == 'empty':
-            if game_config.get('enabled', True):
-                game_config['enabled'] = False
-                fixed = True
-                log(f"游戏 {game_key} 路径为空，已自动禁用")
-        
-        # 验证路径是否存在
-        path = game_config.get('executable_path', '')
-        if path and path != 'empty' and not os.path.exists(path):
-            log(f"警告: 游戏 {game_key} 的路径不存在: {path}")
-    
-    # 检查全局设置
-    global_settings = config.setdefault('global_settings', {})
-    default_globals = {
-        'user_choice_timeout': 10,
-        'exit_countdown': 3,
-        'max_log_files': 5
-    }
-    
-    for setting, default_value in default_globals.items():
-        if setting not in global_settings:
-            global_settings[setting] = default_value
-            fixed = True
-            log(f"添加缺失的全局设置 {setting}: {default_value}")
-    
-    # 如果有修复，保存配置
-    if fixed:
-        try:
-            with open('./config.json', 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)
-            log("配置文件已修复并保存")
-        except Exception as e:
-            log(f"保存修复后的配置时出错: {e}")
-    
-    return config
-
 def display_config_status(config):
     """
     显示当前配置状态
@@ -880,30 +743,19 @@ def main():
     log_only("程序启动")
 
     try:
-        # 后续代码...
+        # 检查配置文件是否存在
         if not check_config_exists():
             log("程序即将退出...")
             time.sleep(5)
             return
 
-        # 尝试加载新格式配置
+        # 加载配置
         config = load_config()
         
-        # 如果新格式加载失败，尝试迁移旧格式配置
         if not config:
-            log("尝试迁移旧格式配置...")
-            try:
-                with open('./config.json', 'r', encoding='utf-8') as f:
-                    old_config = json.load(f)
-                    config = migrate_old_config(old_config)
-            except Exception as e:
-                log(f"迁移旧格式配置时出错: {e}")
-                log("程序即将退出...")
-                time.sleep(5)
-                return
-
-        # 验证并修复配置
-        config = validate_and_fix_config(config)
+            log("配置文件加载失败，程序即将退出...")
+            time.sleep(5)
+            return
 
         # 显示当前配置状态
         display_config_status(config)
