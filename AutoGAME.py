@@ -221,21 +221,21 @@ def execute_game_automation(game_key, game_config):
     执行单个游戏的自动化流程
     :param game_key: 游戏标识符
     :param game_config: 游戏配置
-    :return: 是否成功执行
+    :return: 是否成功执行, 是否已等待过
     """
     if not game_config.get('enabled', False):
         log(f"{game_config.get('name', game_key)} 已禁用，跳过执行")
-        return True
+        return True, False
         
     if not game_config.get('executable_path'):
         log(f"{game_config.get('name', game_key)} 可执行文件路径为空，跳过执行")
-        return True
+        return True, False
     
     # 检查文件是否存在
     exe_path = game_config.get('executable_path')
     if not os.path.exists(exe_path):
         log(f"{game_config.get('name', game_key)} 可执行文件不存在: {exe_path}")
-        return False
+        return False, False
     
     game_name = game_config.get('name', game_key)
     log(f"执行 {game_name}")
@@ -261,7 +261,7 @@ def execute_game_automation(game_key, game_config):
             console_print("")
             
             log_only(f"{game_name} 执行完成")
-            return True
+            return True, True  # 已等待
         
         # 对于有游戏进程的任务，监控游戏进程
         process_name = game_config.get('process_name')
@@ -279,7 +279,7 @@ def execute_game_automation(game_key, game_config):
                     console_print("")  # 换行
                     log(f"{game_name} 游戏进程已启动，开始监控")
                     process_found = True
-                    monitor_process(process_name, None, None)
+                    has_waited = monitor_process(process_name, None, None)
                     break
                 
                 # 显示等待进度
@@ -302,7 +302,9 @@ def execute_game_automation(game_key, game_config):
                     time.sleep(1)
                 console_print("")
                 
-                return False
+                return False, True  # 已等待
+            else:
+                return True, has_waited
         else:
             # 没有配置进程名，等待默认时间
             wait_time = game_config.get('post_execution_wait', 15)
@@ -314,11 +316,11 @@ def execute_game_automation(game_key, game_config):
             console_print("")
         
         log_only(f"{game_name} 执行完成")
-        return True
+        return True, True  # 已等待
         
     except Exception as e:
         log(f"执行 {game_name} 时出错: {e}")
-        return False
+        return False, False
 
 def monitor_process(process_name, start_command, args=None):
     """
@@ -326,6 +328,7 @@ def monitor_process(process_name, start_command, args=None):
     :param process_name: 进程名称
     :param start_command: 启动命令
     :param args: 启动命令的参数
+    :return: 是否已等待过（True/False）
     """
     global current_monitoring_process, current_monitoring_start_time
     
@@ -352,7 +355,7 @@ def monitor_process(process_name, start_command, args=None):
         else:
             log(f"启动 {process_name} 失败，请检查路径或权限")
             current_monitoring_process = None
-            return
+            return False
 
     # 静默监控，控制台实时显示运行时间
     console_print(f"正在监控 {process_name}，按 Ctrl+C 可强制结束...")
@@ -403,6 +406,7 @@ def monitor_process(process_name, start_command, args=None):
         console_print("")
         
         log(f"结束监控进程: {process_name}")
+        return True  # 已等待
         
     except KeyboardInterrupt:
         console_print("\n检测到 Ctrl+C，正在停止监控...")
@@ -594,15 +598,16 @@ def execute_steps(config, choice):
         if choice is None or choice == len(game_list) + 1:
             # 执行所有已启用的游戏
             log("开始按顺序执行所有已启用的游戏")
-            for game_key, game_config in game_list:
+            for idx, (game_key, game_config) in enumerate(game_list):
                 if game_config.get('enabled', False):
-                    success = execute_game_automation(game_key, game_config)
+                    success, has_waited = execute_game_automation(game_key, game_config)
                     if not success:
                         log(f"{game_config.get('name', game_key)} 执行失败，但继续执行下一个游戏")
                     
-                    # 游戏间等待时间
+                    # 游戏间等待时间（如果本游戏已等待过，则不再等待）
                     post_wait = game_config.get('post_execution_wait', 15)
-                    if post_wait > 0 and game_key != list(games.keys())[-1]:  # 最后一个游戏不需要等待
+                    is_last = (game_key == list(games.keys())[-1])
+                    if post_wait > 0 and not is_last and not has_waited:
                         log(f"等待 {post_wait} 秒后继续下一个游戏...")
                         for i in range(post_wait, 0, -1):
                             console_print(f"\r等待 {i} 秒后继续...", end='')
