@@ -104,50 +104,6 @@ def cleanup_on_exit():
     if log_file:
         log_file.close()
 
-def request_admin_privileges():
-    """
-    请求管理员权限，如果没有管理员权限则重新启动脚本并请求权限
-    """
-    try:
-        if not ctypes.windll.shell32.IsUserAnAdmin():
-            print("正在请求管理员权限...")  # 使用print而不是log，因为log文件可能还未创建
-            # 我们不再在此处创建日志文件
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-            sys.exit(0)
-    except Exception as e:
-        print(f"请求管理员权限失败: {e}")
-        sys.exit(1)
-
-def is_admin():
-    """
-    检查当前用户是否具有管理员权限
-    :return: 是否具有管理员权限
-    """
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
-
-def start_process(command, run_as_script=False, args=None):
-    """
-    尝试启动指定的进程
-    :param command: 要执行的命令或脚本路径
-    :param run_as_script: 是否以脚本方式运行
-    :param args: 传递给命令的参数列表
-    """
-    log(f"启动进程: {os.path.basename(command)}")
-    if run_as_script:
-        # 以脚本方式运行 - 使用阻塞调用，因为脚本通常执行完就结束
-        subprocess.run([sys.executable, command] + (args if args else []))
-    else:
-        if args:
-            # 运行带有参数的命令 - 使用非阻塞调用
-            subprocess.Popen([command] + args)
-            log(f"已启动进程: {os.path.basename(command)} (非阻塞)")
-        else:
-            # 直接启动文件
-            os.startfile(command)
-
 def is_process_running(process_name):
     """
     检查指定名称的进程是否正在运行
@@ -714,6 +670,26 @@ def display_config_status(config):
     log(f"  最大日志文件数: {global_settings.get('max_log_files', 5)} 个")
     log("=" * 60)
 
+def start_process(command, run_as_script=False, args=None):
+    """
+    尝试启动指定的进程
+    :param command: 要执行的命令或脚本路径
+    :param run_as_script: 是否以脚本方式运行
+    :param args: 传递给命令的参数列表
+    """
+    log(f"启动进程: {os.path.basename(command)}")
+    if run_as_script:
+        # 以脚本方式运行 - 使用阻塞调用，因为脚本通常执行完就结束
+        subprocess.run([sys.executable, command] + (args if args else []))
+    else:
+        if args:
+            # 运行带有参数的命令 - 使用非阻塞调用
+            subprocess.Popen([command] + args)
+            log(f"已启动进程: {os.path.basename(command)} (非阻塞)")
+        else:
+            # 直接启动文件
+            os.startfile(command)
+
 def main():
     """
     主函数，执行脚本的主要逻辑
@@ -734,11 +710,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # 先检查管理员权限，避免创建日志后再请求权限
-    if not is_admin():
-        request_admin_privileges()
-
-    # 创建日志文件
+    # 直接创建日志文件，无需管理员权限判断
     log_file, log_filepath = create_log_file()
     log_only("程序启动")
 
