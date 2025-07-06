@@ -274,9 +274,8 @@ class MainProcess {
       const result = await dialog.showOpenDialog(this.mainWindow, {
         properties: ['openFile'],
         filters: [
-          { name: 'Executable Files', extensions: ['exe'] },
-          { name: 'Python Files', extensions: ['py'] },
-          { name: 'All Files', extensions: ['*'] }
+          { name: '支持的类型', extensions: ['exe', 'py'] },
+          { name: '所有文件', extensions: ['*'] }
         ],
         ...options
       });

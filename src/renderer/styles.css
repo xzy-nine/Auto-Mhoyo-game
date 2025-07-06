@@ -323,12 +323,18 @@ body {
 
 /* 游戏配置卡片 */
 .games-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
+    column-count: auto;
+    column-width: 400px;
+    column-gap: 1.5rem;
+    column-fill: balance;
 }
 
 .game-card {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
     background: var(--bg-primary);
     border-radius: 12px;
     padding: 1.5rem;
@@ -351,11 +357,28 @@ body {
 }
 
 .game-card.disabled .game-header {
-    margin-bottom: 0;
+    margin-bottom: 1rem;
 }
 
 .game-card.disabled:hover {
     transform: none;
+}
+
+.game-disabled-hint {
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border-left: 4px solid var(--color-warning);
+    margin-top: 0.5rem;
+}
+
+.game-disabled-hint p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .game-header {
@@ -1645,6 +1668,11 @@ label {
         grid-template-columns: repeat(2, 1fr);
     }
     
+    .games-container {
+        column-count: 2;
+        column-width: 350px;
+    }
+    
     /* 在中等屏幕上调整下拉框最大宽度 */
     .setting-item > .modern-select-wrapper,
     .setting-item > .modern-input {
@@ -1662,7 +1690,8 @@ label {
     }
     
     .games-container {
-        grid-template-columns: 1fr;
+        column-count: 1;
+        column-width: auto;
     }
     
     .header-content {
