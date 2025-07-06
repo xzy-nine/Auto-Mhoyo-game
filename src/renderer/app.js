@@ -30,9 +30,35 @@ class AutoMihoyoApp {
             this.runningProcesses = {}; // 初始化运行进程
             this.updateDashboard(); // 初始化仪表盘
             this.showNotification('应用初始化完成', 'success');
+            
+            // 初始化完成后移除加载遮罩
+            this.removeLoadingOverlay();
         } catch (error) {
             this.showNotification(`初始化失败: ${error.message}`, 'error');
+            // 即使出错也要移除加载遮罩
+            this.removeLoadingOverlay();
         }
+    }
+
+    // 移除加载遮罩
+    removeLoadingOverlay() {
+        // 确保所有内容都已完全加载和渲染
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                document.body.classList.add('ready');
+                // 通知主进程渲染器已准备就绪
+                if (window.electronAPI && window.electronAPI.notifyReady) {
+                    window.electronAPI.notifyReady();
+                }
+                // 更长延迟确保平滑过渡，完全避免闪烁
+                setTimeout(() => {
+                    const loadingOverlay = document.querySelector('.loading-overlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
+                    }
+                }, 800);
+            }, 300);
+        });
     }
 
     async loadConfig() {

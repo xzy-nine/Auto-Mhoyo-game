@@ -17,10 +17,19 @@ class MainProcess {
       process.env.PORTABLE_EXECUTABLE_DIR = path.dirname(process.execPath);
     }
     
+    // 添加命令行开关来防止闪烁
+    app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+    app.commandLine.appendSwitch('disable-renderer-backgrounding');
+    app.commandLine.appendSwitch('disable-background-timer-throttling');
+    app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
+    
     this.initializeApp();
   }
 
   initializeApp() {
+    // 禁用硬件加速，防止GPU相关的闪烁
+    app.disableHardwareAcceleration();
+    
     app.whenReady().then(async () => {
       console.log('Electron 应用启动中...');
       console.log('当前工作目录:', process.cwd());
@@ -76,24 +85,78 @@ class MainProcess {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: path.join(__dirname, 'preload.js')
+        preload: path.join(__dirname, 'preload.js'),
+        // 禁用硬件加速可能导致的闪烁
+        webgl: false,
+        // 优化渲染
+        backgroundThrottling: false
       },
       icon: path.join(__dirname, '../assets/icon.png'),
-      show: false
+      show: false,
+      // 防止白屏闪烁的配置
+      backgroundColor: '#1a1a1a', // 设置深色背景，匹配应用主题
+      titleBarStyle: 'default',
+      // 避免视觉闪烁
+      webSecurity: true,
+      // 优化渲染性能
+      enableRemoteModule: false,
+      // 禁用视觉效果
+      paintWhenInitiallyHidden: false,
+      // 窗口创建时的配置
+      skipTaskbar: false,
+      // 禁用动画
+      useContentSize: true,
+      // 强制深色模式
+      darkTheme: true
     });
 
+    // 监听窗口事件，确保只显示一次
+    let hasShown = false;
+
+    // 加载页面
     this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
 
+    // 开发工具
     if (this.isDev) {
       this.mainWindow.webContents.openDevTools();
     }
 
+    // 等待所有资源加载完成
+    this.mainWindow.webContents.once('did-finish-load', () => {
+      if (!hasShown) {
+        // 额外延迟确保渲染完成
+        setTimeout(() => {
+          if (!hasShown) {
+            hasShown = true;
+            this.mainWindow.show();
+            // 确保窗口聚焦
+            this.mainWindow.focus();
+          }
+        }, 200);
+      }
+    });
+
+    // 备用显示机制
     this.mainWindow.once('ready-to-show', () => {
-      this.mainWindow.show();
+      if (!hasShown) {
+        setTimeout(() => {
+          if (!hasShown) {
+            hasShown = true;
+            this.mainWindow.show();
+            this.mainWindow.focus();
+          }
+        }, 100);
+      }
     });
   }
 
   setupIpcHandlers() {
+    // 渲染器准备就绪事件
+    ipcMain.on('renderer-ready', () => {
+      console.log('渲染器已准备就绪');
+      // 可以在这里执行额外的初始化操作
+    });
+
     // 获取配置
     ipcMain.handle('get-config', async () => {
       try {

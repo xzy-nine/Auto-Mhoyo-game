@@ -6,8 +6,95 @@
     <title>AUTO-mihoyo-all - 米哈游游戏自动化管理工具</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="theme-styles.css">
+    <style>
+        /* 防止闪烁的初始样式 - 完全预设 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a !important;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            visibility: visible;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* 确保所有元素都有深色背景 */
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* 加载指示器 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.8s ease-out;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #667eea;
+        }
+        
+        /* 预设应用容器样式防止布局闪烁 */
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+        
+        /* 应用准备就绪后的样式 */
+        body.ready .loading-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        body.ready .app-container {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">🎮 AUTO-mihoyo-all 启动中...</div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- 标题栏 -->
         <header class="app-header">
@@ -286,6 +373,21 @@
     <!-- 通知容器 -->
     <div id="notifications" class="notifications-container"></div>
 
+    <script>
+        // 确保页面完全加载后再显示内容
+        document.addEventListener('DOMContentLoaded', function() {
+            // 预加载所有样式和资源
+            setTimeout(() => {
+                document.body.style.visibility = 'visible';
+            }, 50);
+        });
+        
+        // 处理字体和图片加载
+        window.addEventListener('load', function() {
+            // 所有资源包括图片都已加载完成
+            console.log('页面资源加载完成');
+        });
+    </script>
     <script src="theme-manager.js"></script>
     <script src="app.js"></script>
 </body>

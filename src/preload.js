@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRealtimeLogs: () => ipcRenderer.invoke('get-realtime-logs'),
   getSignInDetails: () => ipcRenderer.invoke('get-signin-details'),
 
+  // 页面准备状态
+  notifyReady: () => ipcRenderer.send('renderer-ready'),
+
   // 事件监听
   onProcessUpdate: (callback) => {
     ipcRenderer.on('process-update', callback);
