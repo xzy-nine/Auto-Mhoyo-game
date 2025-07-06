@@ -30,8 +30,7 @@
                 <nav class="nav-menu">
                     <button class="nav-item active" data-tab="dashboard">📊 仪表盘</button>
                     <button class="nav-item" data-tab="games">🎮 游戏配置</button>
-                    <button class="nav-item" data-tab="monitor">📊 进程监控</button>
-                    <button class="nav-item" data-tab="logs">📝 运行日志</button>
+                    <button class="nav-item" data-tab="logs">📝 历史运行日志</button>
                     <button class="nav-item" data-tab="settings">⚙️ 全局设置</button>
                 </nav>
                 
@@ -49,6 +48,41 @@
                     <div class="status-item">
                         <span>运行中:</span>
                         <span id="runningProcesses" class="status-number">0</span>
+                    </div>
+                    
+                    <!-- 运行状态块 -->
+                    <div class="status-overview">
+                        <h4>🎮 运行状态</h4>
+                        <div class="status-grid-compact">
+                            <div class="status-card-compact">
+                                <div class="status-icon">🎮</div>
+                                <div class="status-info">
+                                    <h5>活跃进程</h5>
+                                    <span id="activeProcessCount" class="status-value">0</span>
+                                </div>
+                            </div>
+                            <div class="status-card-compact">
+                                <div class="status-icon">⏱️</div>
+                                <div class="status-info">
+                                    <h5>总运行时长</h5>
+                                    <span id="totalRuntime" class="status-value">00:00:00</span>
+                                </div>
+                            </div>
+                            <div class="status-card-compact">
+                                <div class="status-icon">✅</div>
+                                <div class="status-info">
+                                    <h5>今日签到</h5>
+                                    <span id="todaySignIn" class="status-value">未执行</span>
+                                </div>
+                            </div>
+                            <div class="status-card-compact">
+                                <div class="status-icon">🪙</div>
+                                <div class="status-info">
+                                    <h5>米游币</h5>
+                                    <span id="mihoyoCoins" class="status-value">-</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -75,40 +109,7 @@
                             </div>
                         </div>
 
-                        <!-- 运行状态概览 -->
-                        <div class="dashboard-section">
-                            <h3>📈 运行状态</h3>
-                            <div class="status-grid">
-                                <div class="status-card">
-                                    <div class="status-icon">🎮</div>
-                                    <div class="status-info">
-                                        <h4>活跃进程</h4>
-                                        <span id="activeProcessCount" class="status-value">0</span>
-                                    </div>
-                                </div>
-                                <div class="status-card">
-                                    <div class="status-icon">⏱️</div>
-                                    <div class="status-info">
-                                        <h4>总运行时长</h4>
-                                        <span id="totalRuntime" class="status-value">00:00:00</span>
-                                    </div>
-                                </div>
-                                <div class="status-card">
-                                    <div class="status-icon">✅</div>
-                                    <div class="status-info">
-                                        <h4>今日签到</h4>
-                                        <span id="todaySignIn" class="status-value">未执行</span>
-                                    </div>
-                                </div>
-                                <div class="status-card">
-                                    <div class="status-icon">🪙</div>
-                                    <div class="status-info">
-                                        <h4>米游币</h4>
-                                        <span id="mihoyoCoins" class="status-value">-</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
 
                         <!-- 实时进程状态 -->
                         <div class="dashboard-section">
@@ -156,28 +157,11 @@
                     </div>
                 </div>
 
-                <!-- 进程监控标签页 -->
-                <div id="monitor-tab" class="tab-content">
-                    <div class="tab-header">
-                        <h2>📊 进程监控</h2>
-                        <p>实时监控游戏进程运行状态</p>
-                        <div class="monitor-tip">
-                            <p>💡 提示：要启动游戏，请前往 <button class="link-btn" onclick="app.switchTab('dashboard')">📊 仪表盘</button> 进行操作</p>
-                        </div>
-                    </div>
-                    
-                    <div id="processMonitor" class="monitor-container">
-                        <div class="empty-state">
-                            <p>暂无运行中的进程</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 运行日志标签页 -->
+                <!-- 历史运行日志标签页 -->
                 <div id="logs-tab" class="tab-content">
                     <div class="tab-header">
-                        <h2>📝 运行日志</h2>
-                        <p>查看游戏执行的详细日志记录</p>
+                        <h2>📝 历史运行日志</h2>
+                        <p>查看游戏执行的详细历史日志记录</p>
                     </div>
                     
                     <div class="logs-container">

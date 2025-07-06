@@ -9,6 +9,8 @@ class AutoMihoyoApp {
         this.realtimeLogs = {}; // 实时日志
         this.logUpdateTimeout = null; // 日志更新节流器
         this.runtimeStartTime = Date.now();
+        this.totalScriptRuntime = 0; // 总脚本运行时长（毫秒）
+        this.scriptStartTimes = {}; // 脚本开始时间记录
         
         this.initializeApp();
     }
@@ -22,6 +24,8 @@ class AutoMihoyoApp {
             this.setupRealtimeLogListener(); // 设置实时日志监听
             this.renderGameCards();
             this.updateStatusPanel();
+            // 自动验证配置状态
+            await this.autoValidateConfig();
             this.startProcessMonitoring();
             this.runningProcesses = {}; // 初始化运行进程
             this.updateDashboard(); // 初始化仪表盘
@@ -695,6 +699,22 @@ class AutoMihoyoApp {
         }
     }
 
+    async autoValidateConfig() {
+        try {
+            const validation = await window.electronAPI.validateConfig();
+            if (validation.error) {
+                this.updateConfigStatus('invalid');
+                return;
+            }
+            
+            this.updateConfigStatus(validation.valid ? 'valid' : 'invalid');
+            
+        } catch (error) {
+            console.error('自动验证配置失败:', error);
+            this.updateConfigStatus('unknown');
+        }
+    }
+
     startProcessMonitoring() {
         if (this.processStatusInterval) {
             clearInterval(this.processStatusInterval);
@@ -743,11 +763,11 @@ class AutoMihoyoApp {
         const activeProcessCount = runningProcesses.length;
         document.getElementById('activeProcessCount').textContent = activeProcessCount;
         
-        // 更新应用总运行时长（从应用启动开始计算，与进程状态无关）
-        const runtime = Date.now() - this.runtimeStartTime;
-        const hours = Math.floor(runtime / (1000 * 60 * 60));
-        const minutes = Math.floor((runtime % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((runtime % (1000 * 60)) / 1000);
+        // 更新总运行时长（所有脚本执行时长的累计）
+        const totalRuntime = this.updateTotalScriptRuntime();
+        const hours = Math.floor(totalRuntime / (1000 * 60 * 60));
+        const minutes = Math.floor((totalRuntime % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((totalRuntime % (1000 * 60)) / 1000);
         document.getElementById('totalRuntime').textContent = 
             `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         
@@ -1096,13 +1116,13 @@ class AutoMihoyoApp {
             try {
                 const result = await window.electronAPI.getProcessStatus();
                 if (result && !result.error) {
-                    this.runningProcesses = result.processes || {};
-                    this.updateStatusPanel();
+                    const newProcesses = result.processes || {};
                     
-                    // 如果当前在监控页面，更新监控显示
-                    if (this.currentTab === 'monitor') {
-                        await this.updateProcessMonitor();
-                    }
+                    // 检查进程状态变化，更新运行时长统计
+                    this.updateScriptRuntimeTracking(newProcesses);
+                    
+                    this.runningProcesses = newProcesses;
+                    this.updateStatusPanel();
                 }
             } catch (error) {
                 console.error('获取进程状态失败:', error);
@@ -1110,78 +1130,6 @@ class AutoMihoyoApp {
         }, 3000); // 每3秒检查一次
     }
     
-    async updateProcessMonitor() {
-        try {
-            const result = await window.electronAPI.getProcessStatus();
-            const processStatus = result.processes || {};
-            const container = document.getElementById('processMonitor');
-            
-            if (Object.keys(processStatus).length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>暂无运行中的进程</p></div>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            Object.entries(processStatus).forEach(([gameKey, status]) => {
-                const card = this.createProcessCard(gameKey, status);
-                container.appendChild(card);
-            });
-            
-        } catch (error) {
-            console.error('更新进程监控失败:', error);
-        }
-    }
-
-    createProcessCard(gameKey, status) {
-        const card = document.createElement('div');
-        card.className = 'process-card';
-        
-        // 只有进程真正运行时才计算运行时间
-        let runTimeFormatted = '未运行';
-        if (status.status === 'running' && status.startTime) {
-            const runTime = Date.now() - status.startTime;
-            runTimeFormatted = this.formatRunTime(runTime);
-        } else if (status.status === 'stopped' && status.startTime && status.endTime) {
-            // 已停止的进程显示总运行时间
-            const totalRunTime = status.endTime - status.startTime;
-            runTimeFormatted = `已结束 (运行了 ${this.formatRunTime(totalRunTime)})`;
-        }
-        
-        card.innerHTML = `
-            <div class="process-header">
-                <span class="process-name">${status.name || gameKey}</span>
-                <span class="process-status">${status.status === 'running' ? '🔴 运行中' : '⭕ 已停止'}</span>
-            </div>
-            <div class="process-info">
-                <div><strong>运行状态:</strong> ${runTimeFormatted}</div>
-                ${status.status === 'running' && status.pid ? `<div><strong>进程ID:</strong> ${status.pid}</div>` : ''}
-            </div>
-            ${status.status === 'running' ? 
-                `<button class="btn btn-danger btn-sm" onclick="app.stopProcess('${gameKey}')">停止进程</button>` : 
-                ''
-            }
-        `;
-        
-        return card;
-    }
-
-    formatRunTime(milliseconds) {
-        // 确保输入是整数毫秒
-        const ms = Math.max(0, Math.floor(milliseconds));
-        const totalSeconds = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        
-        if (hours > 0) {
-            return `${hours}小时${minutes}分${seconds}秒`;
-        } else if (minutes > 0) {
-            return `${minutes}分${seconds}秒`;
-        } else {
-            return `${seconds}秒`;
-        }
-    }
-
     async loadLogs() {
         try {
             const logs = await window.electronAPI.getLogs();
@@ -1852,6 +1800,87 @@ class AutoMihoyoApp {
                 </div>
             </div>
         `).join('');
+    }
+    
+    updateTotalScriptRuntime() {
+        // 计算当前正在运行的脚本的实时运行时长
+        let currentRuntime = 0;
+        Object.entries(this.runningProcesses || {}).forEach(([key, process]) => {
+            if (process.status && (
+                process.status.includes('正在') || 
+                process.status.includes('签到进行中') ||
+                process.status.includes('等待') ||
+                process.status === 'running'
+            )) {
+                if (this.scriptStartTimes[key]) {
+                    const currentDuration = Date.now() - this.scriptStartTimes[key];
+                    if (currentDuration > 0) {
+                        currentRuntime += currentDuration;
+                    }
+                }
+            }
+        });
+        
+        // 总时长 = 已完成的脚本时长 + 当前正在运行的脚本时长
+        return this.totalScriptRuntime + currentRuntime;
+    }
+
+    updateScriptRuntimeTracking(newProcesses) {
+        // 检查每个进程的状态变化
+        Object.entries(newProcesses).forEach(([key, newProcess]) => {
+            const oldProcess = this.runningProcesses ? this.runningProcesses[key] : null;
+            
+            const isNewProcessRunning = newProcess.status && (
+                newProcess.status.includes('正在') || 
+                newProcess.status.includes('签到进行中') ||
+                newProcess.status.includes('等待') ||
+                newProcess.status === 'running'
+            );
+            
+            const wasOldProcessRunning = oldProcess && oldProcess.status && (
+                oldProcess.status.includes('正在') || 
+                oldProcess.status.includes('签到进行中') ||
+                oldProcess.status.includes('等待') ||
+                oldProcess.status === 'running'
+            );
+            
+            // 进程开始运行
+            if (isNewProcessRunning && !wasOldProcessRunning) {
+                if (newProcess.startTime && !this.scriptStartTimes[key]) {
+                    this.scriptStartTimes[key] = newProcess.startTime;
+                    console.log(`脚本 ${key} 开始运行，开始时间: ${new Date(newProcess.startTime).toLocaleTimeString()}`);
+                }
+            }
+            
+            // 进程停止运行
+            if (!isNewProcessRunning && wasOldProcessRunning) {
+                if (this.scriptStartTimes[key]) {
+                    const endTime = newProcess.endTime || Date.now();
+                    const duration = endTime - this.scriptStartTimes[key];
+                    if (duration > 0) {
+                        this.totalScriptRuntime += duration;
+                        console.log(`脚本 ${key} 结束运行，本次运行时长: ${this.formatDuration(duration)}, 总累计时长: ${this.formatDuration(this.totalScriptRuntime)}`);
+                    }
+                    delete this.scriptStartTimes[key];
+                }
+            }
+        });
+        
+        // 检查已经不存在的进程（被删除的进程）
+        if (this.runningProcesses) {
+            Object.keys(this.runningProcesses).forEach(key => {
+                if (!newProcesses[key] && this.scriptStartTimes[key]) {
+                    // 进程被删除，计算运行时长
+                    const endTime = Date.now();
+                    const duration = endTime - this.scriptStartTimes[key];
+                    if (duration > 0) {
+                        this.totalScriptRuntime += duration;
+                        console.log(`脚本 ${key} 意外终止，本次运行时长: ${this.formatDuration(duration)}, 总累计时长: ${this.formatDuration(this.totalScriptRuntime)}`);
+                    }
+                    delete this.scriptStartTimes[key];
+                }
+            });
+ }
     }
 }
 
