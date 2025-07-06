@@ -79,7 +79,17 @@ class MainProcess {
   }
 
   createWindow() {
-    this.mainWindow = new BrowserWindow({
+    // 确保使用绝对路径和高质量图标
+    const iconPath = path.resolve(__dirname, '../assets/icon.png');
+    
+    // 检查图标文件是否存在
+    if (!fs.existsSync(iconPath)) {
+      console.warn('图标文件不存在:', iconPath);
+    } else {
+      console.log('使用图标文件:', iconPath);
+    }
+    
+    const windowOptions = {
       width: 1200,
       height: 800,
       webPreferences: {
@@ -91,7 +101,7 @@ class MainProcess {
         // 优化渲染
         backgroundThrottling: false
       },
-      icon: path.join(__dirname, '../assets/icon.png'),
+      icon: iconPath, // 直接设置图标
       show: false,
       // 防止白屏闪烁的配置
       backgroundColor: '#1a1a1a', // 设置深色背景，匹配应用主题
@@ -110,7 +120,9 @@ class MainProcess {
       darkTheme: true,
       // 隐藏菜单栏
       autoHideMenuBar: true
-    });
+    };
+    
+    this.mainWindow = new BrowserWindow(windowOptions);
 
     // 完全移除应用菜单
     Menu.setApplicationMenu(null);

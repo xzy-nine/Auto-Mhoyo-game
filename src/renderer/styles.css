@@ -441,6 +441,8 @@ input:checked + .toggle-slider:before {
     border-radius: 4px;
     font-size: 0.9rem;
     transition: border-color 0.3s ease;
+    height: 2.4rem;
+    box-sizing: border-box;
 }
 
 .config-group input:focus,
@@ -453,16 +455,25 @@ input:checked + .toggle-slider:before {
 .config-row {
     display: flex;
     gap: 0.5rem;
-    align-items: end;
+    align-items: center;
 }
 
 .config-row .config-group {
     flex: 1;
+    margin-bottom: 0; /* 移除嵌套config-group的底部边距 */
+}
+
+.config-row .config-group input,
+.config-row .config-group select {
+    margin-bottom: 0; /* 确保输入框没有额外的底部边距 */
 }
 
 .config-row .btn {
     padding: 0.5rem;
     min-width: auto;
+    height: calc(2.4rem);
+    flex-shrink: 0;
+    align-self: center; /* 确保按钮垂直居中 */
 }
 
 .monitoring-section {

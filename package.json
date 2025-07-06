@@ -1,7 +1,7 @@
 {
   "name": "auto-mihoyo-all",
   "version": "1.0.0",
-  "description": "Electron设计的米哈游游戏自动化统一管理工具",
+  "description": "米游自动化统一管理工具",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -39,6 +39,7 @@
       "assets/**/*",
       "config.json.template"
     ],
+    "icon": "assets/icon.png",
     "win": {
       "target": [
         {
@@ -48,7 +49,14 @@
           ]
         }
       ],
+      "icon": "assets/icon.png",
       "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "mac": {
+      "icon": "assets/icon.png"
+    },
+    "linux": {
+      "icon": "assets/icon.png"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
