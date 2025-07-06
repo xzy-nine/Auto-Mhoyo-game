@@ -290,7 +290,10 @@ class AutoGAME {
               env: {
                 ...process.env,
                 PYTHONIOENCODING: 'utf-8',
-                PYTHONPATH: workingDir
+                PYTHONLEGACYWINDOWSSTDIO: '1',
+                PYTHONUNBUFFERED: '1',
+                LANG: 'zh_CN.UTF-8',
+                LC_ALL: 'zh_CN.UTF-8'
               }
             };
           } else if (ext === '.js') {
@@ -329,10 +332,17 @@ class AutoGAME {
             spawnOptions = {
               cwd: workingDir,
               stdio: 'pipe',
-              shell: true,  // 使用shell执行，避免权限问题
+              shell: true,
               windowsHide: false,
               detached: false,
-              env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+              env: { 
+                ...process.env, 
+                PYTHONIOENCODING: 'utf-8',
+                PYTHONLEGACYWINDOWSSTDIO: '1',
+                PYTHONUNBUFFERED: '1',
+                LANG: 'zh_CN.UTF-8',
+                LC_ALL: 'zh_CN.UTF-8'
+              }
             };
           } else {
             // 无参数的情况，检查是否需要进程监控
@@ -356,7 +366,14 @@ class AutoGAME {
                 shell: true,  // 使用shell执行，避免权限问题
                 windowsHide: false,
                 detached: false,
-                env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+                env: { 
+                  ...process.env, 
+                  PYTHONIOENCODING: 'utf-8',
+                  PYTHONLEGACYWINDOWSSTDIO: '1',
+                  PYTHONUNBUFFERED: '1',
+                  LANG: 'zh_CN.UTF-8',
+                  LC_ALL: 'zh_CN.UTF-8'
+                }
               };
             } else {
               // 没有配置监控，使用简单启动方式
@@ -409,16 +426,10 @@ class AutoGAME {
 
         childProcess.stdout.on('data', (data) => {
           hasOutput = true;
-          // 处理Windows中文编码问题
-          let text;
-          try {
-            // 尝试使用GBK编码解码（Windows中文）
-            const iconv = require('iconv-lite');
-            text = iconv.decode(data, 'gbk');
-          } catch (error) {
-            // 如果iconv-lite不可用，则使用默认编码
-            text = data.toString('utf8');
-          }
+          // 使用智能编码解码
+          let text = this.smartDecodeText(data);
+          // 进一步修复混合编码问题
+          text = this.fixMixedEncodingText(text);
           output += text;
           
           // 实时记录输出
@@ -433,16 +444,10 @@ class AutoGAME {
 
         childProcess.stderr.on('data', (data) => {
           hasOutput = true;
-          // 处理Windows中文编码问题
-          let text;
-          try {
-            // 尝试使用GBK编码解码（Windows中文）
-            const iconv = require('iconv-lite');
-            text = iconv.decode(data, 'gbk');
-          } catch (error) {
-            // 如果iconv-lite不可用，则使用默认编码
-            text = data.toString('utf8');
-          }
+          // 使用智能编码解码
+          let text = this.smartDecodeText(data);
+          // 进一步修复混合编码问题
+          text = this.fixMixedEncodingText(text);
           errorOutput += text;
           
           // 智能处理stderr输出
@@ -970,9 +975,12 @@ class AutoGAME {
 
   async writeLog(logFile, message) {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}\n`;
+    // 修复消息中的编码问题
+    const fixedMessage = this.fixMixedEncodingText(message);
+    const logMessage = `[${timestamp}] ${fixedMessage}\n`;
     try {
-      await fs.appendFile(logFile, logMessage);
+      // 确保使用UTF-8编码写入日志文件
+      await fs.appendFile(logFile, logMessage, 'utf8');
     } catch (error) {
       console.error('Failed to write log:', error);
     }
@@ -1222,37 +1230,47 @@ class AutoGAME {
           stdio: 'pipe',
           shell: true,
           windowsHide: true,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+          env: { 
+            ...process.env, 
+            PYTHONIOENCODING: 'utf-8',
+            PYTHONLEGACYWINDOWSSTDIO: '1',
+            PYTHONUNBUFFERED: '1',
+            LANG: 'zh_CN.UTF-8',
+            LC_ALL: 'zh_CN.UTF-8'
+          }
         });
       } else {
         childProcess = spawn(processedCommand, [], {
           stdio: 'pipe',
           shell: true,
           windowsHide: true,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+          env: { 
+            ...process.env, 
+            PYTHONIOENCODING: 'utf-8',
+            PYTHONLEGACYWINDOWSSTDIO: '1',
+            PYTHONUNBUFFERED: '1',
+            LANG: 'zh_CN.UTF-8',
+            LC_ALL: 'zh_CN.UTF-8'
+          }
         });
       }
 
       let output = '';
 
       childProcess.stdout.on('data', (data) => {
-        // 处理Windows中文编码问题
-        try {
-          const iconv = require('iconv-lite');
-          output += iconv.decode(data, 'gbk');
-        } catch (error) {
-          output += data.toString('utf8');
-        }
+        // 使用智能编码解码
+        let text = this.smartDecodeText(data);
+        // 进一步修复混合编码问题
+        text = this.fixMixedEncodingText(text);
+        output += text;
       });
 
       childProcess.stderr.on('data', (data) => {
-        // 处理Windows中文编码问题
-        try {
-          const iconv = require('iconv-lite');
-          output += iconv.decode(data, 'gbk');
-        } catch (error) {
-          output += data.toString('utf8');
-        }
+        // 使用智能编码解码
+        let text = this.smartDecodeText(data);
+        // 进一步修复混合编码问题
+        text = this.fixMixedEncodingText(text);
+        output += text;
       });
 
       if (waitForExit) {
@@ -1777,6 +1795,185 @@ class AutoGAME {
         logEntry,
         timestamp: new Date().toISOString()
       });
+    }
+  }
+
+  /**
+   * 智能解码文本，处理中文编码问题
+   * @param {Buffer} data 原始数据
+   * @returns {string} 解码后的文本
+   */
+  smartDecodeText(data) {
+    let text;
+    try {
+      const iconv = require('iconv-lite');
+      
+      // 检查数据是否为空
+      if (!data || data.length === 0) {
+        return '';
+      }
+      
+      // 尝试多种编码方式，并检测编码质量
+      const encodings = ['gbk', 'utf8', 'gb2312', 'cp936', 'big5'];
+      let bestText = '';
+      let bestScore = -1;
+      
+      for (const encoding of encodings) {
+        try {
+          const decodedText = iconv.decode(data, encoding);
+          const score = this.calculateTextQuality(decodedText);
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestText = decodedText;
+          }
+          
+          // 如果获得了高质量的文本，直接使用
+          if (score >= 0.9) {
+            break;
+          }
+        } catch (e) {
+          // 忽略编码错误，继续尝试下一种编码
+          continue;
+        }
+      }
+      
+      // 如果所有编码都失败，使用默认方式
+      if (bestScore < 0) {
+        bestText = data.toString('utf8');
+      }
+      
+      text = bestText;
+      
+    } catch (error) {
+      console.warn('智能编码解码失败，使用默认 UTF-8:', error.message);
+      text = data.toString('utf8');
+    }
+    
+    return text;
+  }
+
+  /**
+   * 处理混合编码的文本，逐行检测和修复编码
+   * @param {string} text 可能包含混合编码的文本
+   * @returns {string} 修复后的文本
+   */
+  fixMixedEncodingText(text) {
+    try {
+      const lines = text.split('\n');
+      const fixedLines = [];
+      
+      for (const line of lines) {
+        if (!line.trim()) {
+          fixedLines.push(line);
+          continue;
+        }
+        
+        // 检查这一行是否包含乱码
+        if (this.containsGarbledText(line)) {
+          // 尝试修复这一行
+          const fixedLine = this.fixGarbledLine(line);
+          fixedLines.push(fixedLine);
+        } else {
+          fixedLines.push(line);
+        }
+      }
+      
+      return fixedLines.join('\n');
+    } catch (error) {
+      console.warn('修复混合编码文本时出错:', error.message);
+      return text;
+    }
+  }
+
+  /**
+   * 检查文本是否包含乱码
+   * @param {string} text 要检查的文本
+   * @returns {boolean} 是否包含乱码
+   */
+  containsGarbledText(text) {
+    // 检查是否包含明显的乱码字符
+    return /[ï¿½�]/.test(text) || 
+           /[\x00-\x08\x0e-\x1f\x7f-\x9f]/.test(text) ||
+           // 检查典型的GBK到UTF-8错误转换模式
+           /[姝｜涓｜绛｜鑾｜鍙峯]/.test(text);
+  }
+
+  /**
+   * 修复乱码行
+   * @param {string} line 包含乱码的行
+   * @returns {string} 修复后的行
+   */
+  fixGarbledLine(line) {
+    try {
+      const iconv = require('iconv-lite');
+      
+      // 常见乱码字符映射
+      const garbledMap = {
+        '姝ｅ湪': '正在',
+        '绛惧埌': '签到', 
+        '鑾峰緱': '获得',
+        '浠诲姟': '任务',
+        '瀹屾垚': '完成',
+        '鍒楄〃': '列表',
+        '浼间箮': '似乎',
+        '杩樻湁': '还有',
+        '娌″畬鎴愶': '没完成',
+        '浠婂ぉ': '今天',
+        '杩樿兘': '还能',
+        '涓背娓稿竵': '个米游币',
+        '宸茶幏鍙�': '已获取',
+        '涓笘瀛�': '个世界',
+        '涓帖瀛�': '个帖子',
+        '涓篃璇�': '个也说',
+        '鑾峰彇': '获取',
+        '甯栧瓙': '帖子',
+        '鐩稿叧': '相关',
+        '鎵ц': '执行',
+        '鐪嬪笘': '看帖',
+        '鐐硅禐': '点赞',
+        '鍒嗕韩': '分享',
+        '宸插叏閮�': '已全部',
+        '紝': '，',
+        '銆�': '。',
+        '锛�': '：',
+        '锛�': '；',
+        '锛�': '（',
+        '锛�': '）',
+        '銆�': '【',
+        '銆�': '】',
+        '锛�': '、',
+        '锛�': '！',
+        '锛�': '？'
+      };
+      
+      let fixedLine = line;
+      
+      // 首先尝试直接替换已知的乱码模式
+      for (const [garbled, correct] of Object.entries(garbledMap)) {
+        fixedLine = fixedLine.replace(new RegExp(garbled, 'g'), correct);
+      }
+      
+      // 如果还有乱码，尝试重新编码
+      if (this.containsGarbledText(fixedLine)) {
+        try {
+          // 尝试将UTF-8误读的GBK文本重新编码
+          const buffer = Buffer.from(line, 'utf8');
+          const reEncoded = iconv.decode(buffer, 'gbk');
+          
+          // 检查重新编码后的质量
+          if (this.calculateTextQuality(reEncoded) > this.calculateTextQuality(fixedLine)) {
+            fixedLine = reEncoded;
+          }
+        } catch (e) {
+          // 忽略重新编码错误
+        }
+      }
+      
+      return fixedLine;
+    } catch (error) {
+      console.warn('修复乱码行时出错:', error.message);
+      return line;
     }
   }
 
