@@ -53,7 +53,7 @@
       "name": "原神BetterGI",
       "path": "",
       "workingDir": "",
-      "arguments": ["--background"],
+      "arguments": ["startOneDragon"],
       "waitTime": 60000,
       "monitoring": {
         "enabled": false,

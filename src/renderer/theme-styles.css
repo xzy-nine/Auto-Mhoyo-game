@@ -1,0 +1,318 @@
+/* 深色模式主题样式 */
+
+/* CSS变量定义 */
+:root {
+    /* 浅色模式变量 (默认) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --bg-quaternary: #dee2e6;
+    
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+    
+    --border-color: rgba(0, 0, 0, 0.1);
+    --border-light: rgba(0, 0, 0, 0.05);
+    
+    --shadow-primary: rgba(0, 0, 0, 0.1);
+    --shadow-secondary: rgba(0, 0, 0, 0.05);
+    
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-secondary: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    
+    /* 主题按钮样式 */
+    --theme-btn-bg: rgba(108, 117, 125, 0.1);
+    --theme-btn-hover-bg: rgba(108, 117, 125, 0.2);
+    --theme-btn-text: #495057;
+}
+
+/* 深色模式样式 */
+body.dark-theme {
+    /* 背景渐变调整为深色 */
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+.dark-theme .app-header {
+    background: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.dark-theme .app-title h1 {
+    color: var(--text-primary);
+}
+
+.dark-theme .app-title p {
+    color: var(--text-secondary);
+}
+
+.dark-theme .sidebar {
+    background: var(--glass-bg);
+    border-right: 1px solid var(--glass-border);
+}
+
+.dark-theme .nav-item {
+    color: var(--text-primary);
+}
+
+.dark-theme .nav-item:hover {
+    background: rgba(52, 152, 219, 0.2);
+    color: var(--text-primary);
+}
+
+.dark-theme .nav-item.active {
+    background: rgba(52, 152, 219, 0.3);
+    color: var(--text-primary);
+}
+
+.dark-theme .status-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme .status-panel h3 {
+    color: var(--text-primary);
+}
+
+.dark-theme .status-item span {
+    color: var(--text-secondary);
+}
+
+.dark-theme .content-area {
+    background: var(--glass-bg);
+}
+
+.dark-theme .tab-header h2 {
+    color: var(--text-primary);
+}
+
+.dark-theme .tab-header p {
+    color: var(--text-secondary);
+}
+
+.dark-theme .game-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px var(--shadow-primary);
+}
+
+.dark-theme .game-card h3 {
+    color: var(--text-primary);
+}
+
+.dark-theme .game-card p {
+    color: var(--text-secondary);
+}
+
+.dark-theme .game-options label {
+    color: var(--text-secondary);
+}
+
+.dark-theme .game-options input,
+.dark-theme .game-options select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme .game-options input:focus,
+.dark-theme .game-options select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+}
+
+.dark-theme .setting-group {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme .setting-group h3 {
+    color: var(--text-primary);
+}
+
+.dark-theme .setting-item label {
+    color: var(--text-secondary);
+}
+
+.dark-theme .setting-item input,
+.dark-theme .setting-item select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme .setting-item input:focus,
+.dark-theme .setting-item select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+}
+
+.dark-theme .setting-item small {
+    color: var(--text-tertiary);
+}
+
+.dark-theme .log-viewer {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .log-entry {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.dark-theme .log-entry.error {
+    background: rgba(231, 76, 60, 0.1);
+    border-left: 4px solid #e74c3c;
+}
+
+.dark-theme .log-entry.warning {
+    background: rgba(243, 156, 18, 0.1);
+    border-left: 4px solid #f39c12;
+}
+
+.dark-theme .log-entry.success {
+    background: rgba(46, 204, 113, 0.1);
+    border-left: 4px solid #2ecc71;
+}
+
+.dark-theme .dashboard-stats {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme .stat-item h3 {
+    color: var(--text-primary);
+}
+
+.dark-theme .stat-item p {
+    color: var(--text-secondary);
+}
+
+.dark-theme .recent-activity {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.dark-theme .recent-activity h3 {
+    color: var(--text-primary);
+}
+
+.dark-theme .activity-item {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.dark-theme .activity-item span {
+    color: var(--text-secondary);
+}
+
+.dark-theme .activity-time {
+    color: var(--text-tertiary);
+}
+
+.dark-theme .app-footer {
+    background: var(--glass-bg);
+    border-top: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+}
+
+.dark-theme .loading-overlay {
+    background: rgba(26, 26, 26, 0.9);
+}
+
+.dark-theme .loading-spinner p {
+    color: var(--text-primary);
+}
+
+.dark-theme .notification {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .notification.success {
+    background: rgba(46, 204, 113, 0.15);
+    border-color: #2ecc71;
+}
+
+.dark-theme .notification.error {
+    background: rgba(231, 76, 60, 0.15);
+    border-color: #e74c3c;
+}
+
+.dark-theme .notification.warning {
+    background: rgba(243, 156, 18, 0.15);
+    border-color: #f39c12;
+}
+
+/* 主题切换按钮样式 */
+.btn-theme {
+    background: var(--theme-btn-bg);
+    color: var(--theme-btn-text);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-theme:hover {
+    background: var(--theme-btn-hover-bg);
+    transform: translateY(-1px);
+}
+
+.dark-theme .btn-theme {
+    --theme-btn-bg: rgba(255, 255, 255, 0.1);
+    --theme-btn-hover-bg: rgba(255, 255, 255, 0.2);
+    --theme-btn-text: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* 主题过渡动画 */
+body {
+    transition: background 0.3s ease;
+}
+
+.app-header,
+.sidebar,
+.content-area,
+.game-card,
+.setting-group,
+.log-viewer,
+.dashboard-stats,
+.recent-activity,
+.app-footer,
+.notification {
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* 设置页面主题控件样式优化 */
+.dark-theme .setting-item input[type="checkbox"] {
+    accent-color: #3498db;
+}
+
+.dark-theme .setting-item select:disabled {
+    background: var(--bg-quaternary);
+    color: var(--text-tertiary);
+    cursor: not-allowed;
+}
+
+/* 响应式设计 - 在小屏幕上隐藏主题按钮文字 */
+@media (max-width: 768px) {
+    .btn-theme {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .btn-theme span {
+        display: none;
+    }
+}

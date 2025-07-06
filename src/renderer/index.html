@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUTO-mihoyo-all - 米哈游游戏自动化管理工具</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="theme-styles.css">
 </head>
 <body>
     <div class="app-container">
@@ -16,6 +17,7 @@
                     <p>米哈游游戏自动化统一管理工具</p>
                 </div>
                 <div class="header-actions">
+                    <button id="themeToggleBtn" class="btn btn-theme" title="切换主题">🌙 深色模式</button>
                     <button id="autoDetectBtn" class="btn btn-secondary">🔍 自动检测</button>
                     <button id="validateBtn" class="btn btn-primary">✅ 验证配置</button>
                     <button id="runAllBtn" class="btn btn-success">▶️ 运行全部</button>
@@ -186,6 +188,23 @@
                     
                     <div class="settings-container">
                         <div class="setting-group">
+                            <h3>🎨 外观设置</h3>
+                            <label class="setting-item">
+                                <input type="checkbox" id="followSystemTheme">
+                                <span>跟随系统主题</span>
+                                <small>自动根据系统设置切换浅色/深色模式</small>
+                            </label>
+                            <div class="setting-item">
+                                <label for="themeMode">主题模式:</label>
+                                <select id="themeMode">
+                                    <option value="light">浅色模式</option>
+                                    <option value="dark">深色模式</option>
+                                </select>
+                                <small>手动选择主题模式</small>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
                             <h3>🚀 启动选项</h3>
                             <label class="setting-item">
                                 <input type="checkbox" id="autoRunCheckbox">
@@ -240,6 +259,7 @@
     <!-- 通知容器 -->
     <div id="notifications" class="notifications-container"></div>
 
+    <script src="theme-manager.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

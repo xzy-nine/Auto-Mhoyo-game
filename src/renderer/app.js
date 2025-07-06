@@ -21,6 +21,7 @@ class AutoMihoyoApp {
             await this.loadAppInfo();
             this.setupEventListeners();
             this.setupNavigation();
+            this.setupThemeEventListeners(); // 添加主题事件监听
             this.setupRealtimeLogListener(); // 设置实时日志监听
             this.renderGameCards();
             this.updateStatusPanel();
@@ -111,6 +112,14 @@ class AutoMihoyoApp {
         });
     }
 
+    setupThemeEventListeners() {
+        // 监听主题变更事件
+        document.addEventListener('themeChanged', (event) => {
+            console.log('主题已切换到:', event.detail.theme);
+            // 可以在这里添加主题切换后的回调逻辑
+        });
+    }
+
     switchTab(tabName) {
         // 隐藏所有标签页内容
         document.querySelectorAll('.tab-content').forEach(tab => {
@@ -139,6 +148,11 @@ class AutoMihoyoApp {
         // 如果切换到仪表盘，更新仪表盘数据
         if (tabName === 'dashboard') {
             this.updateDashboard();
+        }
+        
+        // 如果切换到设置页面，加载设置
+        if (tabName === 'settings') {
+            this.loadSettings();
         }
     }
 
@@ -1207,12 +1221,22 @@ class AutoMihoyoApp {
         document.getElementById('autoRunCheckbox').checked = this.config.autoRun;
         document.getElementById('logLevel').value = this.config.logLevel;
         document.getElementById('maxLogFiles').value = this.config.maxLogFiles;
+        
+        // 加载主题设置 - 但不在这里应用，让ThemeManager自己处理
+        // 这里只是为了在设置页面显示当前状态
+        if (window.themeManager) {
+            document.getElementById('followSystemTheme').checked = window.themeManager.isFollowingSystem();
+            document.getElementById('themeMode').value = window.themeManager.getThemePreference();
+        }
     }
 
     async saveSettings() {
         this.config.autoRun = document.getElementById('autoRunCheckbox').checked;
         this.config.logLevel = document.getElementById('logLevel').value;
         this.config.maxLogFiles = parseInt(document.getElementById('maxLogFiles').value);
+        
+        // 主题设置由ThemeManager自己管理，这里不需要保存到config中
+        // ThemeManager会自动保存到localStorage
         
         await this.saveConfig();
     }
@@ -1223,6 +1247,12 @@ class AutoMihoyoApp {
             this.config.autoRun = false;
             this.config.logLevel = 'info';
             this.config.maxLogFiles = 10;
+            
+            // 重置主题设置
+            if (window.themeManager) {
+                window.themeManager.setSystemPreference(false);
+                window.themeManager.setThemePreference('light');
+            }
             
             this.loadSettings();
             await this.saveConfig();
@@ -1874,26 +1904,25 @@ class AutoMihoyoApp {
             }
         });
         
-        // 检查已经不存在的进程（被删除的进程）
-        if (this.runningProcesses) {
-            Object.keys(this.runningProcesses).forEach(key => {
-                if (!newProcesses[key] && this.scriptStartTimes[key]) {
-                    // 进程被删除，计算运行时长
-                    const endTime = Date.now();
-                    const duration = endTime - this.scriptStartTimes[key];
-                    if (duration > 0) {
-                        this.totalScriptRuntime += duration;
-                        console.log(`脚本 ${key} 意外终止，本次运行时长: ${this.formatDuration(duration)}, 总累计时长: ${this.formatDuration(this.totalScriptRuntime)}`);
-                    }
-                    delete this.scriptStartTimes[key];
-                }
-            });
- }
+        this.runningProcesses = newProcesses;
+    }
+
+    formatDuration(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        
+        if (hours > 0) {
+            return `${hours}小时${minutes % 60}分${seconds % 60}秒`;
+        } else if (minutes > 0) {
+            return `${minutes}分${seconds % 60}秒`;
+        } else {
+            return `${seconds}秒`;
+        }
     }
 }
 
-// 初始化应用
-let app;
+// 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', () => {
-    app = new AutoMihoyoApp();
+    window.app = new AutoMihoyoApp();
 });
