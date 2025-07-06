@@ -1,0 +1,373 @@
+/* 响应式设计 */
+
+/* 中等屏幕 (平板) */
+@media (max-width: 1200px) {
+    .dashboard-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .games-container {
+        column-count: 2;
+        column-width: 350px;
+    }
+    
+    /* 在中等屏幕上调整下拉框最大宽度 */
+    .setting-item > .modern-select-wrapper,
+    .setting-item > .modern-input {
+        max-width: 160px !important;
+    }
+    
+    .setting-item .setting-label {
+        max-width: calc(100% - 180px) !important;
+    }
+    
+    /* 调整侧边栏宽度 */
+    .sidebar {
+        width: 260px;
+    }
+    
+    /* 调整标题栏内边距 */
+    .app-header {
+        padding: 0.75rem 1.5rem;
+    }
+    
+    /* 调整游戏卡片内边距 */
+    .game-card {
+        padding: 1.25rem;
+    }
+    
+    /* 调整仪表盘部分内边距 */
+    .dashboard-section {
+        padding: 1.25rem;
+    }
+}
+
+/* 小屏幕 (手机) */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 250px;
+    }
+    
+    .games-container {
+        column-count: 1;
+        column-width: auto;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* 在小屏幕上进一步调整控件宽度 */
+    .setting-item > .modern-select-wrapper,
+    .setting-item > .modern-input {
+        max-width: 120px !important;
+        min-width: 100px !important;
+    }
+    
+    .setting-item .setting-label {
+        max-width: calc(100% - 140px) !important;
+    }
+    
+    /* 在小屏幕上调整设置项布局为垂直排列 */
+    .setting-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .setting-item .setting-label {
+        max-width: 100% !important;
+        margin-right: 0 !important;
+        text-align: center;
+    }
+    
+    .setting-item > .modern-select-wrapper,
+    .setting-item > .modern-input,
+    .setting-item > .modern-toggle,
+    .setting-item > label.modern-toggle {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        max-width: 200px !important;
+    }
+    
+    /* 调整按钮尺寸 */
+    .btn {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.85rem;
+    }
+    
+    /* 调整游戏卡片 */
+    .game-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .game-title {
+        font-size: 1.1rem;
+    }
+    
+    /* 调整状态卡片 */
+    .status-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .status-icon {
+        font-size: 1.5rem;
+        width: 50px;
+        height: 50px;
+    }
+    
+    /* 调整进程项 */
+    .process-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .process-status {
+        justify-content: center;
+    }
+    
+    /* 调整标题栏 */
+    .app-title h1 {
+        font-size: 1.5rem;
+    }
+    
+    .app-header {
+        padding: 0.5rem 1rem;
+    }
+    
+    /* 调整内容区域内边距 */
+    .tab-content {
+        padding: 1rem;
+    }
+    
+    /* 调整日志容器 */
+    .realtime-log-container {
+        height: 250px;
+        font-size: 0.8rem;
+    }
+    
+    /* 调整活动项 */
+    .activity-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+        text-align: center;
+    }
+    
+    .activity-time {
+        min-width: auto;
+    }
+}
+
+/* 超小屏幕 */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: -100%;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+    }
+    
+    .sidebar.open {
+        left: 0;
+    }
+    
+    .app-main {
+        flex-direction: column;
+    }
+    
+    .content-area {
+        width: 100%;
+    }
+    
+    /* 添加侧边栏切换按钮空间 */
+    .header-actions {
+        justify-content: space-between;
+    }
+    
+    /* 极小屏幕上的按钮调整 */
+    .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    /* 游戏卡片进一步调整 */
+    .game-card {
+        padding: 0.75rem;
+    }
+    
+    /* 状态网格调整为单列 */
+    .status-grid-compact {
+        grid-template-columns: 1fr;
+    }
+    
+    /* 调整表单元素 */
+    .config-group input,
+    .config-group select,
+    .modern-input,
+    .modern-select {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+    
+    /* 调整开关按钮 */
+    .modern-toggle,
+    .game-toggle {
+        width: 38px;
+        height: 20px;
+    }
+    
+    .modern-toggle .toggle-slider,
+    .game-toggle .toggle-slider {
+        width: 38px;
+        height: 20px;
+    }
+    
+    .modern-toggle .toggle-slider:before,
+    .game-toggle .toggle-slider:before {
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+    }
+    
+    .modern-toggle input:checked + .toggle-slider:before,
+    .game-toggle input:checked + .toggle-slider:before {
+        transform: translateX(18px);
+    }
+    
+    /* 调整字体大小 */
+    .app-title h1 {
+        font-size: 1.3rem;
+    }
+    
+    .tab-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .game-title {
+        font-size: 1rem;
+    }
+    
+    /* 调整内边距 */
+    .dashboard-section,
+    .setting-group,
+    .game-card {
+        padding: 0.75rem;
+    }
+    
+    /* 调整间距 */
+    .dashboard-container {
+        gap: 1rem;
+        padding: 0.5rem;
+    }
+    
+    .status-grid {
+        gap: 0.75rem;
+    }
+    
+    .quick-actions {
+        gap: 0.5rem;
+    }
+}
+
+/* 横屏模式调整 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .dashboard-container {
+        grid-template-columns: 1fr 1fr;
+        height: calc(100vh - 120px);
+    }
+    
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .games-container {
+        column-count: 2;
+    }
+    
+    .realtime-log-container {
+        height: 200px;
+    }
+}
+
+/* 高分辨率屏幕优化 */
+@media (min-width: 1400px) {
+    .games-container {
+        column-count: 3;
+        column-width: 400px;
+    }
+    
+    .dashboard-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .status-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .quick-actions {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* 打印样式 */
+@media print {
+    .app-header,
+    .sidebar,
+    .app-footer,
+    .header-actions,
+    .game-actions,
+    .settings-actions,
+    .logs-controls {
+        display: none !important;
+    }
+    
+    .app-main {
+        flex-direction: column;
+    }
+    
+    .content-area {
+        width: 100%;
+        overflow: visible;
+    }
+    
+    .game-card,
+    .status-card,
+    .process-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}

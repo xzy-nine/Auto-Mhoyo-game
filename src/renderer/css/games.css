@@ -1,0 +1,283 @@
+/* 游戏相关样式 */
+
+/* 游戏配置卡片 */
+.games-container {
+    column-count: auto;
+    column-width: 400px;
+    column-gap: 1.5rem;
+    column-fill: balance;
+}
+
+.game-card {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px var(--shadow-primary);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.game-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px var(--shadow-secondary);
+}
+
+.game-card.enabled {
+    border-color: var(--color-success);
+}
+
+.game-card.disabled {
+    opacity: 0.6;
+}
+
+.game-card.disabled .game-header {
+    margin-bottom: 1rem;
+}
+
+.game-card.disabled:hover {
+    transform: none;
+}
+
+.game-disabled-hint {
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border-left: 4px solid var(--color-warning);
+    margin-top: 0.5rem;
+}
+
+.game-disabled-hint p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.game-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.game-toggle {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.game-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-quaternary);
+    transition: .4s;
+    border-radius: 26px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--color-success);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.game-config {
+    margin-top: 1rem;
+}
+
+.monitoring-section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.monitoring-section h4 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+}
+
+.game-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 游戏配置中的开关样式更新 */
+.game-toggle .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 42px;
+    height: 22px;
+    background: linear-gradient(135deg, #bdc3c7, #95a5a6);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 11px;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.game-toggle .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.2),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.game-toggle input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 2px 12px rgba(46, 204, 113, 0.3);
+}
+
+.game-toggle input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+.game-toggle:hover .toggle-slider {
+    transform: scale(1.05);
+}
+
+/* 监控设置区域的设置项样式 */
+.monitoring-section .setting-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 60px;
+    transition: all 0.3s ease;
+}
+
+.monitoring-section .setting-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--shadow-primary);
+    border-color: var(--border-light);
+}
+
+/* 签到详情 */
+.signin-details {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.signin-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.signin-game {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.signin-game-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.signin-result {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.signin-status {
+    padding: 0.2rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.signin-status.success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.signin-status.failed {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
+}
+
+.signin-status.pending {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+}
+
+.signin-reward {
+    color: var(--color-info);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
