@@ -228,11 +228,16 @@ class AutoMihoyoApp {
                 
                 <div class="monitoring-section">
                     <h4>🔍 进程监控设置</h4>
-                    <label class="setting-item">
-                        <input type="checkbox" ${game.monitoring.enabled ? 'checked' : ''} 
-                               onchange="app.updateMonitoring('${gameKey}', 'enabled', this.checked)">
-                        <span>启用进程监控</span>
-                    </label>
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <span>启用进程监控</span>
+                        </div>
+                        <label class="modern-toggle">
+                            <input type="checkbox" ${game.monitoring.enabled ? 'checked' : ''} 
+                                   onchange="app.updateMonitoring('${gameKey}', 'enabled', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                     
                     <div class="config-group">
                         <label>监控进程名:</label>

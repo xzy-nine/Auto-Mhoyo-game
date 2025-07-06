@@ -189,44 +189,74 @@
                     <div class="settings-container">
                         <div class="setting-group">
                             <h3>🎨 外观设置</h3>
-                            <label class="setting-item">
-                                <input type="checkbox" id="followSystemTheme">
-                                <span>跟随系统主题</span>
-                                <small>自动根据系统设置切换浅色/深色模式</small>
-                            </label>
                             <div class="setting-item">
-                                <label for="themeMode">主题模式:</label>
-                                <select id="themeMode">
-                                    <option value="light">浅色模式</option>
-                                    <option value="dark">深色模式</option>
-                                </select>
-                                <small>手动选择主题模式</small>
+                                <div class="setting-label">
+                                    <span id="followSystemThemeLabel">跟随系统主题</span>
+                                    <small>自动根据系统设置切换浅色/深色模式</small>
+                                </div>
+                                <label class="modern-toggle">
+                                    <input type="checkbox" id="followSystemTheme" title="跟随系统主题" aria-labelledby="followSystemThemeLabel">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <span>主题模式</span>
+                                    <small>手动选择主题模式</small>
+                                </div>
+                                <div class="modern-select-wrapper">
+                                    <select id="themeMode" class="modern-select" title="选择主题模式">
+                                        <option value="light">浅色模式</option>
+                                        <option value="dark">深色模式</option>
+                                    </select>
+                                    <div class="select-arrow">
+                                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                                            <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="setting-group">
                             <h3>🚀 启动选项</h3>
-                            <label class="setting-item">
-                                <input type="checkbox" id="autoRunCheckbox">
-                                <span>启用自动运行模式</span>
-                                <small>程序启动时自动执行所有启用的游戏</small>
-                            </label>
+                            <div class="setting-item">
+                                <div class="setting-label">
+                                    <span id="autoRunLabel">启用自动运行模式</span>
+                                    <small>程序启动时自动执行所有启用的游戏</small>
+                                </div>
+                                <label class="modern-toggle">
+                                    <input type="checkbox" id="autoRunCheckbox" title="启用自动运行模式" aria-labelledby="autoRunLabel">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
 
                         <div class="setting-group">
                             <h3>📝 日志设置</h3>
                             <div class="setting-item">
-                                <label for="logLevel">日志级别:</label>
-                                <select id="logLevel">
-                                    <option value="error">错误</option>
-                                    <option value="warn">警告</option>
-                                    <option value="info">信息</option>
-                                    <option value="debug">调试</option>
-                                </select>
+                                <div class="setting-label">
+                                    <span>日志级别</span>
+                                </div>
+                                <div class="modern-select-wrapper">
+                                    <select id="logLevel" class="modern-select" title="选择日志级别">
+                                        <option value="error">错误</option>
+                                        <option value="warn">警告</option>
+                                        <option value="info">信息</option>
+                                        <option value="debug">调试</option>
+                                    </select>
+                                    <div class="select-arrow">
+                                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                                            <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
                             <div class="setting-item">
-                                <label for="maxLogFiles">最大日志文件数:</label>
-                                <input type="number" id="maxLogFiles" min="1" max="100" value="10">
+                                <div class="setting-label">
+                                    <span>最大日志文件数</span>
+                                </div>
+                                <input type="number" id="maxLogFiles" min="1" max="100" value="10" class="modern-input" title="设置最大日志文件数">
                             </div>
                         </div>
 
