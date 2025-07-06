@@ -11,6 +11,10 @@
     --text-primary: #333333;
     --text-secondary: #666666;
     --text-tertiary: #999999;
+    --text-muted: #6c757d;
+    --text-light: #7f8c8d;
+    --text-dark: #2c3e50;
+    --text-accent: #34495e;
     
     --border-color: rgba(0, 0, 0, 0.1);
     --border-light: rgba(0, 0, 0, 0.05);
@@ -24,6 +28,27 @@
     --glass-bg: rgba(255, 255, 255, 0.95);
     --glass-border: rgba(0, 0, 0, 0.1);
     
+    /* 状态颜色 */
+    --color-success: #27ae60;
+    --color-success-bg: #d5f4e6;
+    --color-error: #e74c3c;
+    --color-error-bg: #fdeaea;
+    --color-warning: #f39c12;
+    --color-warning-bg: #fef9e7;
+    --color-info: #3498db;
+    --color-info-bg: #e3f2fd;
+    
+    /* 按钮渐变色 */
+    --btn-primary-bg: linear-gradient(135deg, #3498db, #2980b9);
+    --btn-secondary-bg: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    --btn-success-bg: linear-gradient(135deg, #27ae60, #229954);
+    --btn-warning-bg: linear-gradient(135deg, #f39c12, #e67e22);
+    --btn-danger-bg: linear-gradient(135deg, #e74c3c, #c0392b);
+    
+    /* 日志背景 */
+    --log-bg: #2c3e50;
+    --log-text: #ecf0f1;
+    
     /* 主题按钮样式 */
     --theme-btn-bg: rgba(108, 117, 125, 0.1);
     --theme-btn-hover-bg: rgba(108, 117, 125, 0.2);
@@ -32,6 +57,58 @@
 
 /* 深色模式样式 */
 body.dark-theme {
+    /* 重新定义深色模式变量 */
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+    --bg-quaternary: #555555;
+    
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-tertiary: #999999;
+    --text-muted: #aaaaaa;
+    --text-light: #bbbbbb;
+    --text-dark: #ffffff;
+    --text-accent: #ffffff;
+    
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.05);
+    
+    --shadow-primary: rgba(0, 0, 0, 0.3);
+    --shadow-secondary: rgba(0, 0, 0, 0.2);
+    
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-secondary: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    
+    --glass-bg: rgba(26, 26, 26, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    
+    /* 状态颜色 */
+    --color-success: #2ecc71;
+    --color-success-bg: rgba(46, 204, 113, 0.2);
+    --color-error: #e74c3c;
+    --color-error-bg: rgba(231, 76, 60, 0.2);
+    --color-warning: #f39c12;
+    --color-warning-bg: rgba(243, 156, 18, 0.2);
+    --color-info: #3498db;
+    --color-info-bg: rgba(52, 152, 219, 0.2);
+    
+    /* 按钮渐变色保持不变，因为它们本身就有好的对比度 */
+    --btn-primary-bg: linear-gradient(135deg, #3498db, #2980b9);
+    --btn-secondary-bg: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    --btn-success-bg: linear-gradient(135deg, #27ae60, #229954);
+    --btn-warning-bg: linear-gradient(135deg, #f39c12, #e67e22);
+    --btn-danger-bg: linear-gradient(135deg, #e74c3c, #c0392b);
+    
+    /* 日志背景调整为更深色 */
+    --log-bg: #1a1a1a;
+    --log-text: #ffffff;
+    
+    /* 主题按钮样式 */
+    --theme-btn-bg: rgba(255, 255, 255, 0.1);
+    --theme-btn-hover-bg: rgba(255, 255, 255, 0.2);
+    --theme-btn-text: #ffffff;
+    
     /* 背景渐变调整为深色 */
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
 }
