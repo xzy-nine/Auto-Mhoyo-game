@@ -29,6 +29,9 @@ class AutoMihoyoApp {
             this.startProcessMonitoring();
             this.runningProcesses = {}; // 初始化运行进程
             this.updateDashboard(); // 初始化仪表盘
+            // 初始化侧边栏状态
+            this.updateSidebarProcesses();
+            this.updateSidebarSignInDetails();
             this.showNotification('应用初始化完成', 'success');
             
             // 初始化完成后移除加载遮罩
@@ -829,14 +832,27 @@ class AutoMihoyoApp {
     }
     
     updateRealTimeProcesses() {
+        // 更新仪表盘中的实时进程状态（现在为空，因为已移除）
         const container = document.getElementById('realTimeProcesses');
+        if (container) {
+            // 仪表盘中的实时进程状态已移除，保留空函数避免错误
+        }
+        
+        // 更新侧边栏中的实时进程状态
+        this.updateSidebarProcesses();
+    }
+    
+    updateSidebarProcesses() {
+        const container = document.getElementById('sidebarRealTimeProcesses');
+        const section = document.getElementById('sidebarProcessSection');
         const processes = this.runningProcesses || {};
         
         if (Object.keys(processes).length === 0) {
-            container.innerHTML = '<div class="empty-state">暂无运行中的进程</div>';
+            section.classList.remove('show');
             return;
         }
         
+        section.classList.add('show');
         container.innerHTML = Object.entries(processes).map(([key, process]) => {
             // 根据不同状态显示不同信息
             let runTimeDisplay = '未知';
@@ -882,17 +898,16 @@ class AutoMihoyoApp {
             }
             
             return `
-                <div class="process-item">
-                    <div class="process-info">
-                        <div class="process-name">${process.name || this.config.games[key]?.name || key}</div>
-                        <div class="process-details">
-                            状态: ${statusText} | 运行时间: ${runTimeDisplay}
-                            ${process.status === 'running' && process.pid ? ` | PID: ${process.pid}` : ''}
+                <div class="process-item-sidebar">
+                    <div class="process-info-sidebar">
+                        <div class="process-name-sidebar">${process.name || this.config.games[key]?.name || key}</div>
+                        <div class="process-details-sidebar">
+                            ${statusText}
+                            ${isActive ? ` | ${runTimeDisplay}` : ''}
                         </div>
                     </div>
-                    <div class="process-status">
+                    <div class="process-status-sidebar">
                         <div class="status-indicator ${statusClass}"></div>
-                        ${actionButton}
                     </div>
                 </div>
             `;
@@ -1838,23 +1853,36 @@ class AutoMihoyoApp {
     }
 
     updateSignInDetails() {
+        // 更新仪表盘中的签到详情（现在为空，因为已移除）
         const container = document.getElementById('signInDetails');
+        if (container) {
+            // 仪表盘中的签到详情已移除，保留空函数避免错误
+        }
+        
+        // 更新侧边栏中的签到详情
+        this.updateSidebarSignInDetails();
+    }
+    
+    updateSidebarSignInDetails() {
+        const container = document.getElementById('sidebarSignInDetails');
+        const section = document.getElementById('sidebarSignInSection');
         
         if (Object.keys(this.signInDetails).length === 0) {
-            container.innerHTML = '<div class="empty-state">等待签到执行...</div>';
+            section.classList.remove('show');
             return;
         }
         
+        section.classList.add('show');
         container.innerHTML = Object.entries(this.signInDetails).map(([gameKey, details]) => `
-            <div class="signin-item ${details.status}">
-                <div class="signin-game">
-                    <div class="signin-game-icon">${details.icon || '🎮'}</div>
-                    <span>${details.name || gameKey}</span>
+            <div class="signin-item-sidebar ${details.status}">
+                <div class="signin-game-sidebar">
+                    <div class="signin-game-icon-sidebar">${details.icon || '🎮'}</div>
+                    <span class="signin-game-name-sidebar">${details.name || gameKey}</span>
                 </div>
-                <div class="signin-result">
-                    <div class="signin-status ${details.status}">${details.statusText}</div>
-                    ${details.reward ? `<div class="signin-reward">🎁 ${details.reward}</div>` : ''}
-                    ${details.coins ? `<div class="signin-reward">🪙 ${details.coins} 米游币</div>` : ''}
+                <div class="signin-result-sidebar">
+                    <div class="signin-status-sidebar ${details.status}">${details.statusText}</div>
+                    ${details.reward ? `<div class="signin-reward-sidebar">🎁 ${details.reward}</div>` : ''}
+                    ${details.coins ? `<div class="signin-reward-sidebar">🪙 ${details.coins}</div>` : ''}
                 </div>
             </div>
         `).join('');

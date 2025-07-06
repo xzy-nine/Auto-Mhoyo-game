@@ -255,3 +255,158 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* 侧边栏进程状态样式 */
+.process-status-list-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.process-item-sidebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid #3498db;
+    transition: all 0.3s ease;
+}
+
+.process-item-sidebar:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.process-info-sidebar {
+    flex: 1;
+    min-width: 0;
+}
+
+.process-name-sidebar {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    margin-bottom: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.process-details-sidebar {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.process-status-sidebar {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* 侧边栏签到详情样式 */
+.signin-details-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.signin-item-sidebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid #2ecc71;
+    transition: all 0.3s ease;
+}
+
+.signin-item-sidebar:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.signin-item-sidebar.success {
+    border-left-color: #2ecc71;
+}
+
+.signin-item-sidebar.failed {
+    border-left-color: #e74c3c;
+}
+
+.signin-item-sidebar.pending {
+    border-left-color: #f39c12;
+}
+
+.signin-game-sidebar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.signin-game-icon-sidebar {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.signin-game-name-sidebar {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.signin-result-sidebar {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.signin-status-sidebar {
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-bottom: 0.1rem;
+}
+
+.signin-status-sidebar.success {
+    color: #2ecc71;
+}
+
+.signin-status-sidebar.failed {
+    color: #e74c3c;
+}
+
+.signin-status-sidebar.pending {
+    color: #f39c12;
+}
+
+.signin-reward-sidebar {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    line-height: 1;
+}
+
+/* 隐藏状态 */
+#sidebarProcessSection,
+#sidebarSignInSection {
+    display: none;
+}
+
+#sidebarProcessSection.show,
+#sidebarSignInSection.show {
+    display: block;
+}
