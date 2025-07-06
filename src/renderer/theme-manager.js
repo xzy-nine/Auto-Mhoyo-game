@@ -120,7 +120,7 @@ class ThemeManager {
     bindThemeControls() {
         const followSystemCheckbox = document.getElementById('followSystemTheme');
         const themeSelect = document.getElementById('themeMode');
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        // 主题切换按钮已移除，不需要绑定事件
 
         if (followSystemCheckbox) {
             followSystemCheckbox.addEventListener('change', (e) => {
@@ -134,12 +134,6 @@ class ThemeManager {
             });
         }
 
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', () => {
-                this.toggleTheme();
-            });
-        }
-
         this.updateThemeControls();
     }
 
@@ -149,7 +143,7 @@ class ThemeManager {
     updateThemeControls() {
         const followSystemCheckbox = document.getElementById('followSystemTheme');
         const themeSelect = document.getElementById('themeMode');
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        // 主题切换按钮已移除，不需要更新状态
 
         if (followSystemCheckbox) {
             followSystemCheckbox.checked = this.systemPreference;
@@ -158,13 +152,6 @@ class ThemeManager {
         if (themeSelect) {
             themeSelect.value = this.themePreference;
             themeSelect.disabled = this.systemPreference;
-        }
-
-        if (themeToggleBtn) {
-            const icon = this.currentTheme === 'dark' ? '☀️' : '🌙';
-            const text = this.currentTheme === 'dark' ? '浅色模式' : '深色模式';
-            themeToggleBtn.innerHTML = `${icon} ${text}`;
-            themeToggleBtn.title = `切换到${text}`;
         }
     }
 

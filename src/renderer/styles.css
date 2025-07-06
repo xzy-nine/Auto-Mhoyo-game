@@ -679,7 +679,7 @@ input:checked + .toggle-slider:before {
 .notifications-container {
     position: fixed;
     top: 1rem;
-    right: 1rem;
+    left: 1rem;
     z-index: 1001;
 }
 
@@ -708,7 +708,7 @@ input:checked + .toggle-slider:before {
 
 @keyframes slideIn {
     from {
-        transform: translateX(100%);
+        transform: translateX(-100%);
         opacity: 0;
     }
     to {
@@ -1299,6 +1299,8 @@ input:checked + .toggle-slider:before {
     position: relative;
     display: inline-block;
     width: 100%;
+    max-width: 200px; /* 限制最大宽度防止超出父容器 */
+    min-width: 120px; /* 设置最小宽度确保内容可读 */
 }
 
 .modern-select {
@@ -1436,6 +1438,7 @@ input:checked + .toggle-slider:before {
     margin-left: auto !important;
     margin-right: 0 !important;
     align-self: center !important;
+    max-width: 200px !important; /* 防止控件超出容器边界 */
 }
 
 /* 特别处理设置项中的label控件（如开关按钮的容器） */
@@ -1452,7 +1455,7 @@ input:checked + .toggle-slider:before {
 .setting-item .setting-label {
     flex: 1 !important;
     margin-right: 1rem !important;
-    max-width: calc(100% - 80px) !important; /* 为控件预留至少80px的空间 */
+    max-width: calc(100% - 220px) !important; /* 为控件预留至少220px的空间（200px控件宽度 + 20px间距） */
 }
 
 /* 游戏配置中的开关样式更新 */
@@ -1547,6 +1550,7 @@ input:checked + .toggle-slider:before {
     flex-shrink: 0 !important;
     margin-left: auto !important;
     margin-right: 0 !important;
+    max-width: 200px !important; /* 防止控件超出容器边界 */
 }
 
 /* 确保监控部分的开关也能正确右对齐 */
@@ -1555,6 +1559,7 @@ input:checked + .toggle-slider:before {
     flex-shrink: 0 !important;
     margin-left: auto !important;
     margin-right: 0 !important;
+    max-width: 200px !important; /* 防止控件超出容器边界 */
 }
 
 /* 确保设置标签占据剩余空间但不干扰右对齐 */
@@ -1584,6 +1589,16 @@ input:checked + .toggle-slider:before {
     .status-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    
+    /* 在中等屏幕上调整下拉框最大宽度 */
+    .setting-item > .modern-select-wrapper,
+    .setting-item > .modern-input {
+        max-width: 160px !important;
+    }
+    
+    .setting-item .setting-label {
+        max-width: calc(100% - 180px) !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1611,5 +1626,39 @@ input:checked + .toggle-slider:before {
     
     .status-grid {
         grid-template-columns: 1fr;
+    }
+    
+    /* 在小屏幕上进一步调整控件宽度 */
+    .setting-item > .modern-select-wrapper,
+    .setting-item > .modern-input {
+        max-width: 120px !important;
+        min-width: 100px !important;
+    }
+    
+    .setting-item .setting-label {
+        max-width: calc(100% - 140px) !important;
+    }
+    
+    /* 在小屏幕上调整设置项布局为垂直排列 */
+    .setting-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .setting-item .setting-label {
+        max-width: 100% !important;
+        margin-right: 0 !important;
+        text-align: center;
+    }
+    
+    .setting-item > .modern-select-wrapper,
+    .setting-item > .modern-input,
+    .setting-item > .modern-toggle,
+    .setting-item > label.modern-toggle {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        max-width: 200px !important;
     }
 }

@@ -21,7 +21,6 @@ class AutoMihoyoApp {
             await this.loadAppInfo();
             this.setupEventListeners();
             this.setupNavigation();
-            this.setupThemeEventListeners(); // 添加主题事件监听
             this.setupRealtimeLogListener(); // 设置实时日志监听
             this.renderGameCards();
             this.updateStatusPanel();
@@ -82,8 +81,6 @@ class AutoMihoyoApp {
 
     setupEventListeners() {
         // 全局按钮事件
-        document.getElementById('autoDetectBtn').addEventListener('click', () => this.autoDetectGames());
-        document.getElementById('validateBtn').addEventListener('click', () => this.validateConfig());
         document.getElementById('runAllBtn').addEventListener('click', () => this.runAllGames());
         
         // 设置页面事件
@@ -109,14 +106,6 @@ class AutoMihoyoApp {
                 const tabName = item.dataset.tab;
                 this.switchTab(tabName);
             });
-        });
-    }
-
-    setupThemeEventListeners() {
-        // 监听主题变更事件
-        document.addEventListener('themeChanged', (event) => {
-            console.log('主题已切换到:', event.detail.theme);
-            // 可以在这里添加主题切换后的回调逻辑
         });
     }
 
