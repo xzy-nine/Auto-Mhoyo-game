@@ -358,6 +358,14 @@ body {
     opacity: 0.6;
 }
 
+.game-card.disabled .game-header {
+    margin-bottom: 0;
+}
+
+.game-card.disabled:hover {
+    transform: none;
+}
+
 .game-header {
     display: flex;
     justify-content: space-between;

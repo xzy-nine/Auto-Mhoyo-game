@@ -155,7 +155,9 @@ class AutoMihoyoApp {
     createGameCard(gameKey, game) {
         const card = document.createElement('div');
         card.className = `game-card ${game.enabled ? 'enabled' : 'disabled'}`;
-        card.innerHTML = `
+        
+        // 基础标题和开关部分
+        const headerHTML = `
             <div class="game-header">
                 <h3 class="game-title">${game.name}</h3>
                 <label class="game-toggle">
@@ -164,7 +166,17 @@ class AutoMihoyoApp {
                     <span class="toggle-slider"></span>
                 </label>
             </div>
-            
+        `;
+        
+        // 禁用状态的提示信息
+        const disabledHintHTML = !game.enabled ? `
+            <div class="game-disabled-hint">
+                <p>🔧 启用此游戏配置开关以显示详细设置选项</p>
+            </div>
+        ` : '';
+        
+        // 详细配置部分（仅在启用时显示）
+        const configHTML = game.enabled ? `
             <div class="game-config">
                 <div class="config-group">
                     <label>可执行文件路径:</label>
@@ -221,15 +233,17 @@ class AutoMihoyoApp {
                                onchange="app.updateMonitoring('${gameKey}', 'customProcessName', this.value)">
                     </div>
                 </div>
+                
+                <div class="game-actions">
+                    <button class="btn btn-primary" onclick="app.runGameFromConfig('${gameKey}')" 
+                            ${!game.enabled ? 'disabled' : ''}>▶️ 启动 (跳转到仪表盘)</button>
+                    <button class="btn btn-secondary" onclick="app.testGamePath('${gameKey}')" 
+                            ${!game.path ? 'disabled' : ''}>🔍 测试</button>
+                </div>
             </div>
-            
-            <div class="game-actions">
-                <button class="btn btn-primary" onclick="app.runGameFromConfig('${gameKey}')" 
-                        ${!game.enabled ? 'disabled' : ''}>▶️ 启动 (跳转到仪表盘)</button>
-                <button class="btn btn-secondary" onclick="app.testGamePath('${gameKey}')" 
-                        ${!game.path ? 'disabled' : ''}>🔍 测试</button>
-            </div>
-        `;
+        ` : '';
+        
+        card.innerHTML = headerHTML + disabledHintHTML + configHTML;
         
         return card;
     }
@@ -1193,16 +1207,12 @@ class AutoMihoyoApp {
         document.getElementById('autoRunCheckbox').checked = this.config.autoRun;
         document.getElementById('logLevel').value = this.config.logLevel;
         document.getElementById('maxLogFiles').value = this.config.maxLogFiles;
-        document.getElementById('processMonitoringCheckbox').checked = this.config.processMonitoring.enabled;
-        document.getElementById('checkInterval').value = this.config.processMonitoring.checkInterval;
     }
 
     async saveSettings() {
         this.config.autoRun = document.getElementById('autoRunCheckbox').checked;
         this.config.logLevel = document.getElementById('logLevel').value;
         this.config.maxLogFiles = parseInt(document.getElementById('maxLogFiles').value);
-        this.config.processMonitoring.enabled = document.getElementById('processMonitoringCheckbox').checked;
-        this.config.processMonitoring.checkInterval = parseInt(document.getElementById('checkInterval').value);
         
         await this.saveConfig();
     }
@@ -1213,8 +1223,6 @@ class AutoMihoyoApp {
             this.config.autoRun = false;
             this.config.logLevel = 'info';
             this.config.maxLogFiles = 10;
-            this.config.processMonitoring.enabled = true;
-            this.config.processMonitoring.checkInterval = 5000;
             
             this.loadSettings();
             await this.saveConfig();
