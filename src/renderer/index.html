@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUTO-mihoyo-all - 米哈游游戏自动化管理工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 标题栏 -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="app-title">
+                    <h1>🎮 AUTO-mihoyo-all</h1>
+                    <p>米哈游游戏自动化统一管理工具</p>
+                </div>
+                <div class="header-actions">
+                    <button id="autoDetectBtn" class="btn btn-secondary">🔍 自动检测</button>
+                    <button id="validateBtn" class="btn btn-primary">✅ 验证配置</button>
+                    <button id="runAllBtn" class="btn btn-success">▶️ 运行全部</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区 -->
+        <main class="app-main">
+            <!-- 侧边栏 -->
+            <aside class="sidebar">
+                <nav class="nav-menu">
+                    <button class="nav-item active" data-tab="dashboard">📊 仪表盘</button>
+                    <button class="nav-item" data-tab="games">🎮 游戏配置</button>
+                    <button class="nav-item" data-tab="monitor">📊 进程监控</button>
+                    <button class="nav-item" data-tab="logs">📝 运行日志</button>
+                    <button class="nav-item" data-tab="settings">⚙️ 全局设置</button>
+                </nav>
+                
+                <!-- 状态面板 -->
+                <div class="status-panel">
+                    <h3>📈 状态概览</h3>
+                    <div class="status-item">
+                        <span>配置状态:</span>
+                        <span id="configStatus" class="status-badge">未知</span>
+                    </div>
+                    <div class="status-item">
+                        <span>启用游戏:</span>
+                        <span id="enabledGames" class="status-number">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>运行中:</span>
+                        <span id="runningProcesses" class="status-number">0</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <!-- 仪表盘标签页 -->
+                <div id="dashboard-tab" class="tab-content active">
+                    <div class="tab-header">
+                        <h2>📊 运行仪表盘</h2>
+                        <p>实时监控各项运行状况和快捷操作</p>
+                    </div>
+                    
+                    <div class="dashboard-container">
+                        <!-- 快捷操作面板 -->
+                        <div class="dashboard-section">
+                            <h3>🚀 快捷启动</h3>
+                            <div class="quick-actions">
+                                <button id="quickStartMihoyo" class="btn btn-primary">米游社签到</button>
+                                <button id="quickStartGenshin" class="btn btn-primary">原神一条龙</button>
+                                <button id="quickStartStarRail" class="btn btn-primary">星铁一条龙</button>
+                                <button id="quickStartZenless" class="btn btn-primary">绝区零一条龙</button>
+                                <button id="quickStopAll" class="btn btn-danger">🛑 停止全部</button>
+                            </div>
+                        </div>
+
+                        <!-- 运行状态概览 -->
+                        <div class="dashboard-section">
+                            <h3>📈 运行状态</h3>
+                            <div class="status-grid">
+                                <div class="status-card">
+                                    <div class="status-icon">🎮</div>
+                                    <div class="status-info">
+                                        <h4>活跃进程</h4>
+                                        <span id="activeProcessCount" class="status-value">0</span>
+                                    </div>
+                                </div>
+                                <div class="status-card">
+                                    <div class="status-icon">⏱️</div>
+                                    <div class="status-info">
+                                        <h4>总运行时长</h4>
+                                        <span id="totalRuntime" class="status-value">00:00:00</span>
+                                    </div>
+                                </div>
+                                <div class="status-card">
+                                    <div class="status-icon">✅</div>
+                                    <div class="status-info">
+                                        <h4>今日签到</h4>
+                                        <span id="todaySignIn" class="status-value">未执行</span>
+                                    </div>
+                                </div>
+                                <div class="status-card">
+                                    <div class="status-icon">🪙</div>
+                                    <div class="status-info">
+                                        <h4>米游币</h4>
+                                        <span id="mihoyoCoins" class="status-value">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 实时进程状态 -->
+                        <div class="dashboard-section">
+                            <h3>🔄 实时进程状态</h3>
+                            <div id="realTimeProcesses" class="process-status-list">
+                                <div class="empty-state">暂无运行中的进程</div>
+                            </div>
+                        </div>
+
+                        <!-- 最近活动 -->
+                        <div class="dashboard-section">
+                            <h3>📝 最近活动</h3>
+                            <div id="recentActivity" class="activity-list">
+                                <div class="empty-state">暂无活动记录</div>
+                            </div>
+                        </div>
+
+                        <!-- 签到详情 -->
+                        <div class="dashboard-section">
+                            <h3>🎁 签到详情</h3>
+                            <div id="signInDetails" class="signin-details">
+                                <div class="empty-state">等待签到执行...</div>
+                            </div>
+                        </div>
+
+                        <!-- 实时日志输出 -->
+                        <div class="dashboard-section">
+                            <h3>📄 实时日志</h3>
+                            <div id="realTimeLogOutput" class="realtime-log-container">
+                                <div class="empty-state">等待任务执行...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 游戏配置标签页 -->
+                <div id="games-tab" class="tab-content">`
+                    <div class="tab-header">
+                        <h2>🎮 游戏配置管理</h2>
+                        <p>配置各个米哈游游戏的自动化设置</p>
+                    </div>
+                    
+                    <div id="gamesContainer" class="games-container">
+                        <!-- 游戏配置卡片将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 进程监控标签页 -->
+                <div id="monitor-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>📊 进程监控</h2>
+                        <p>实时监控游戏进程运行状态</p>
+                        <div class="monitor-tip">
+                            <p>💡 提示：要启动游戏，请前往 <button class="link-btn" onclick="app.switchTab('dashboard')">📊 仪表盘</button> 进行操作</p>
+                        </div>
+                    </div>
+                    
+                    <div id="processMonitor" class="monitor-container">
+                        <div class="empty-state">
+                            <p>暂无运行中的进程</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 运行日志标签页 -->
+                <div id="logs-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>📝 运行日志</h2>
+                        <p>查看游戏执行的详细日志记录</p>
+                    </div>
+                    
+                    <div class="logs-container">
+                        <div class="logs-controls">
+                            <button id="refreshLogsBtn" class="btn btn-secondary">🔄 刷新日志</button>
+                            <button id="clearLogsBtn" class="btn btn-warning">🗑️ 清空日志</button>
+                        </div>
+                        <div id="logsContent" class="logs-content">
+                            <div class="empty-state">
+                                <p>暂无日志记录</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 全局设置标签页 -->
+                <div id="settings-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>⚙️ 全局设置</h2>
+                        <p>配置应用程序的全局选项</p>
+                    </div>
+                    
+                    <div class="settings-container">
+                        <div class="setting-group">
+                            <h3>🚀 启动选项</h3>
+                            <label class="setting-item">
+                                <input type="checkbox" id="autoRunCheckbox">
+                                <span>启用自动运行模式</span>
+                                <small>程序启动时自动执行所有启用的游戏</small>
+                            </label>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>📝 日志设置</h3>
+                            <div class="setting-item">
+                                <label for="logLevel">日志级别:</label>
+                                <select id="logLevel">
+                                    <option value="error">错误</option>
+                                    <option value="warn">警告</option>
+                                    <option value="info">信息</option>
+                                    <option value="debug">调试</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="maxLogFiles">最大日志文件数:</label>
+                                <input type="number" id="maxLogFiles" min="1" max="100" value="10">
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>📊 监控设置</h3>
+                            <label class="setting-item">
+                                <input type="checkbox" id="processMonitoringCheckbox">
+                                <span>启用进程监控</span>
+                                <small>实时监控游戏进程运行状态</small>
+                            </label>
+                            <div class="setting-item">
+                                <label for="checkInterval">监控间隔(毫秒):</label>
+                                <input type="number" id="checkInterval" min="1000" max="60000" step="1000" value="5000">
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button id="saveSettingsBtn" class="btn btn-primary">💾 保存设置</button>
+                            <button id="resetSettingsBtn" class="btn btn-warning">🔄 重置默认</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 状态栏 -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span id="statusText">就绪</span>
+                <span id="lastUpdated"></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 加载中遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>正在处理中...</p>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

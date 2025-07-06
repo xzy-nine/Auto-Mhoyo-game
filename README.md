@@ -1,175 +1,158 @@
 # AUTO-mihoyo-all 项目说明
 
 ## 项目简介
-通过一个统一的自动化脚本，一键调用多个米哈游相关的自动化项目。
+Electron设计的米哈游游戏自动化统一管理工具。
+
+**� 便携版专享特性:**
+- ✅ **即下即用** - 无需安装，双击即可运行
+- ✅ **零依赖** - 所有必需组件已内置
+- ✅ **配置同目录** - 配置文件与exe在同一文件夹
+- ✅ **绿色软件** - 不写注册表，不留系统垃圾
 
 **支持的游戏项目:**
-- [MihoyoBBSTools](https://github.com/Womsxd/MihoyoBBSTools) - 米游社签到
-- [March7thAssistant](https://github.com/moesnow/March7thAssistant) - 崩坏:星穹铁道三月七助手
-- [ZenlessZoneZero-OneDragon](https://github.com/DoctorReid/ZenlessZoneZero-OneDragon) - 绝区零一条龙
-- [better-genshin-impact](https://github.com/babalae/better-genshin-impact) - 原神BetterGI
+- [MihoyoBBSTools](https://github.com/Womsxd/MihoyoBBSTools) - 米游社签到(py脚本)
+- [March7thAssistant](https://github.com/moesnow/March7thAssistant) - 崩坏:星穹铁道三月七助手(单独程序)
+- [ZenlessZoneZero-OneDragon](https://github.com/DoctorReid/ZenlessZoneZero-OneDragon) - 绝区零一条龙(单独程序)
+- [better-genshin-impact](https://github.com/babalae/better-genshin-impact) - 原神BetterGI(单独程序加参数)
 
 **主要特性:**
-- 🎯 **统一配置管理** - 新的JSON配置格式，支持每个游戏的独立设置
-- 🔄 **自动配置迁移** - 自动将旧格式配置升级到新格式
-- 📊 **智能状态显示** - 显示每个游戏的启用状态和路径验证
-- ⏱️ **执行时间统计** - 记录和显示各游戏的执行时长
-- 🛡️ **进程监控** - 自动监控游戏进程，支持实时运行时间显示
-- 📝 **完善的日志** - 自动日志轮转，详细记录执行过程
-- 🎮 **灵活执行** - 支持单独执行或批量执行游戏
-## 文件结构
-- **config.json.template**: 配置文件的模板，包括批处理文件路径、助手程序路径和进程监控设置等。
-- **requirements.txt**: 列出项目所需的 Python 依赖项，使用 pip 安装。
-- **自动化一条龙.bat**:通过bat运行py脚本,检查并安装依赖
-## 使用说明
+- 🎯 **统一配置管理** - JSON配置格式，支持每个游戏的独立设置
+- ⚡ **便携版优化** - 专为便携使用场景优化，快速启动，零依赖运行
+- 📊 **智能状态显示** - 实时显示每个游戏的启用状态和路径验证结果
+- ⏱️ **执行时间统计** - 记录和显示各游戏的执行时长和运行历史
+- 🛡️ **进程监控** - 自动监控游戏进程，支持实时运行时间显示和自定义进程名
+- 📝 **完善的日志** - 自动日志轮转，详细记录执行过程，支持多级日志
+- 🎮 **灵活执行** - 支持单独执行、批量执行、自动运行多种模式
+- 🖥️ **双重界面** - 提供Electron图形界面和Node.js命令行两种使用方式
+- 🔍 **自动检测** - 智能检测常见游戏安装路径，简化配置过程
+- ⚙️ **高度可配置** - 支持启动参数、工作目录、等待时间等详细配置
 
-### 🚀 快速开始
-1. **环境准备**: 确保已安装 Python 3.7+ 和 pip
-2. **配置文件**: 
-   - 将 `config.json.template` 重命名为 `config.json`
-   - 根据模板中的中文提示，将标注为【必须修改】的路径替换为您的实际路径
-   - 模板中所有以"请替换为实际路径"开头的路径都必须修改
-3. **安装依赖**: 运行 `自动化一条龙.bat` 或执行 `pip install -r requirements.txt`
-4. **运行程序**: 以管理员身份运行 `python AutoGAME.py` 或直接运行 `自动化一条龙.bat`
+## 🚀 使用方式
 
-### ⚙️ 配置文件设置要点
-- 📝 **模板使用**: 配置模板已包含详细的中文说明和示例
-- ⚠️ **必须修改**: 所有标注【必须修改】的路径都需要替换为实际路径
-- 🔧 **路径格式**: 使用双斜线 `\\` 或正斜线 `/` 分隔目录
-- ✅ **路径验证**: 确保所有可执行文件路径正确且文件存在
-- 🎛️ **游戏控制**: 不需要的游戏可将 `enabled` 设置为 `false`
+### 快速开始
+1. **下载便携版**: 从Releases下载最新的便携版exe文件
+2. **直接运行**: 双击exe文件即可启动，首次运行会自动创建配置文件  
+3. **配置游戏**: 在界面中启用需要的游戏并设置路径
+4. **开始使用**: 点击"运行全部"或单独运行游戏
 
-### ⚙️ 配置说明
-程序支持新的层次化配置格式，会自动迁移旧格式配置。配置文件包含两个主要部分：
+### 开发版本
+```bash
+# 安装依赖
+npm install
 
-#### 📋 配置文件创建步骤:
-1. **复制模板**: 将 `config.json.template` 重命名为 `config.json`
-2. **查找标记**: 找到所有【必须修改】标记的配置项
-3. **替换路径**: 将"请替换为实际路径"替换为您的真实文件路径
-4. **保存文件**: 确保所有路径都正确设置
+# 启动Electron图形界面
+npm start
 
-#### 📝 配置示例对比:
+# 使用Node.js命令行版本
+node AutoGAME.js --validate
+node AutoGAME.js --auto-detect  
+node AutoGAME.js --all
 
-**模板中的示例（需要修改）:**
-```json
-// 【必须修改】请替换为您的 MihoyoBBSTools 项目中 main.py 文件的完整路径
-"executable_path": "请替换为实际路径\\MihoyoBBSTools\\main.py"
+# 构建便携版
+npm run dist
 ```
 
-**正确配置后的示例:**
-```json
-"executable_path": "E:\\gamedata\\AutoGAME\\MihoyoBBSTools\\main.py"
-```
+### 批处理脚本
+- `start.bat` - 启动图形界面版本
+- `auto-run.bat` - 自动运行所有启用的游戏  
+- `run-nodejs.bat [参数]` - Node.js命令行版本
+- `build.bat` - 构建便携版exe
 
-#### games 配置示例:
-```json
-{
-    "games": {
-        "mihoyo_sign": {
-            "name": "米游社签到",
-            "enabled": true,
-            "executable_path": "E:\\path\\to\\MihoyoBBSTools\\main.py",
-            "run_as_script": true,
-            "args": [],
-            "wait_timeout": 30,
-            "post_execution_wait": 5
-        },
-        "star_rail": {
-            "name": "崩坏:星穹铁道",
-            "enabled": true,
-            "executable_path": "E:\\path\\to\\March7thAssistant\\March7th Assistant.exe",
-            "run_as_script": false,
-            "args": [],
-            "process_name": "StarRail.exe",
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        }
-    },
-    "global_settings": {
-        "user_choice_timeout": 10,
-        "exit_countdown": 3,
-        "max_log_files": 5
-    }
-}
-```
-### 配置文件字段说明:
-
-**games 部分** - 每个游戏的配置:
-- `name`: 游戏显示名称
-- `enabled`: 是否启用该游戏 (true/false)
-- `executable_path`: 可执行文件的完整路径 (**注意要使用双斜线**)
-- `run_as_script`: 是否以Python脚本方式运行 (true/false)
-- `args`: 启动参数列表
-- `process_name`: 需要监控的游戏进程名称
-- `launch_timeout`: 等待游戏启动的超时时间(秒)
-- `post_execution_wait`: 游戏执行后的等待时间(秒)
-- `wait_timeout`: 签到任务的等待时间(秒)
-
-**global_settings 部分** - 全局设置:
-- `user_choice_timeout`: 用户选择菜单的超时时间(秒)
-- `exit_countdown`: 程序退出前的倒计时(秒)
-- `max_log_files`: 保留的最大日志文件数量
-
-## 📁 文件结构
+## 开发文件结构
 ```
 AUTO-mihoyo-all/
-├── AutoGAME.py              # 主程序文件
-├── config.json              # 用户配置文件 (需要自行创建)
+├── src/                     # 源码目录
+│   ├── AutoGAME.js         # Node.js核心逻辑
+│   ├── main.js             # Electron主进程
+│   ├── preload.js          # 预加载脚本
+│   └── renderer/           # 渲染进程文件
+│       ├── index.html      # 主界面
+│       ├── styles.css      # 样式文件
+│       └── app.js          # 前端逻辑
+├── assets/                  # 应用资源文件
+│   └── icon.svg            # 应用图标
+├── AutoGAME.js              # Node.js版本入口（新）
 ├── config.json.template     # 配置文件模板
-├── check_config.py          # 配置检查工具
-├── 检查配置.bat              # 配置检查启动脚本
-├── requirements.txt         # Python依赖列表
-├── 自动化一条龙.bat          # Windows启动脚本
-├── README.md               # 项目说明文档
-└── logs/                   # 自动生成的日志目录
-    ├── 20240101_120000.log # 执行日志文件
-    └── ...                 # 其他日志文件
+└── dist/                   #开发过程中的打包目录和测试用应用根目录
+    ├── 打包好的.exe
+    ├── log/
+    └── config.json            # exe生成和控制的用户配置文件
+
 ```
-
-## 🔧 配置检查工具
-
-为了帮助用户验证配置是否正确，项目提供了专门的配置检查工具：
-
-### 📋 使用方法
-1. **图形界面**: 双击运行 `检查配置.bat`
-2. **命令行**: 执行 `python check_config.py`
+## 发行版文件结构
+```
+应用根目录/
+├── 下载的打包好的.exe
+├── log/
+└── config.json            # exe生成和控制的用户配置文件
+```
 
 ### ✅ 检查内容
-- 验证 `config.json` 文件是否存在
-- 检查JSON格式是否正确
-- 确认是否还有未替换的模板路径
-- 验证启用游戏的可执行文件是否存在
-- 显示配置状态统计信息
+- ✅ 验证 `config.json` 文件是否存在并格式正确
+- ✅ 检查所有启用游戏的可执行文件路径有效性
+- ✅ 确认工作目录和启动参数配置
+- ✅ 验证进程监控设置和进程名配置
+- ✅ 显示配置状态统计信息和警告提示
 
-### 📊 检查结果示例
+## 📸 功能截图
+
+### 🎮 游戏配置界面
+- 直观的卡片式游戏配置界面
+- 一键启用/禁用游戏
+- 文件选择器快速设置路径
+- 实时配置验证和状态显示
+
+### 📊 进程监控界面  
+- 实时显示运行中的游戏进程
+- 监控进程运行时间和状态
+- 支持自定义进程名监控
+
+### 📝 日志查看界面
+- 彩色日志显示，便于问题定位
+- 支持日志搜索和过滤
+- 自动日志轮转管理
+
+### ⚙️ 全局设置界面
+- 自动运行模式配置
+- 日志级别和文件数量设置  
+- 进程监控间隔调整
+
+## 🔧 配置示例
+
+### 基础配置
+```json
+{
+  "version": "1.0.0",
+  "autoRun": false,
+  "logLevel": "info",
+  "games": {
+    "mihoyoBBSTools": {
+      "enabled": true,
+      "name": "米游社签到工具",
+      "path": "C:\\Tools\\MihoyoBBSTools\\main.py",
+      "workingDir": "C:\\Tools\\MihoyoBBSTools",
+      "arguments": [],
+      "waitTime": 30000,
+      "monitoring": {
+        "enabled": true,
+        "processName": "python.exe"
+      }
+    }
+  }
+}
 ```
-=== AUTO-mihoyo-all 配置文件检查工具 ===
-✅ config.json 文件格式正确
-✅ 配置文件结构正确
 
-🎮 米游社签到:
-   状态: ✅ 启用
-   路径: ✅ 文件存在
-        E:\gamedata\AutoGAME\MihoyoBBSTools\main.py
+### 高级配置选项
+- **waitTime**: 游戏执行后的等待时间（毫秒）
+- **monitoring.enabled**: 是否启用进程监控
+- **monitoring.processName**: 要监控的进程名
+- **monitoring.customProcessName**: 自定义进程名（可选）
 
-📊 检查结果:
-   总游戏数: 4
-   已启用: 4
-   已禁用: 0
-
-🎉 配置检查通过！所有启用的游戏路径都正确设置
-```
 
 ## 🔧 高级功能
 
-### 自动配置迁移
-- 程序会自动检测旧格式配置并迁移到新格式
-- 迁移时会创建 `config.json.backup` 备份文件
-- 支持配置文件自动修复和验证
-
 ### 进程监控
 - 自动监控游戏进程，实时显示运行时间
-- 支持按 Ctrl+C 强制中断监控
 - 记录每个游戏的详细执行时长
 
 ### 日志管理
@@ -177,9 +160,155 @@ AUTO-mihoyo-all/
 - 详细记录每个步骤的执行过程和时间
 - 支持查看上次运行的统计信息
 
-## ⚠️ 注意事项
-- **管理员权限**: 请确保以管理员身份运行该脚本，程序会自动请求权限
-- **路径格式**: 配置文件中的路径请使用双斜线 `\\` 或正斜线 `/`
-- **文件路径**: 确保所有配置的可执行文件路径正确且文件存在
-- **自动备份**: 程序会自动备份配置文件，迁移时创建 `.backup` 文件
-- **日志查看**: 程序执行日志存储在 `logs/` 目录中，便于后续查看和调试
+## 🛠️ 开发说明
+
+### 技术架构
+- **前端**: Electron + HTML5 + CSS3 + JavaScript
+- **后端**: Node.js + fs-extra + node-schedule
+- **进程管理**: 跨平台进程监控和执行
+- **配置管理**: JSON格式配置文件
+- **日志系统**: 自动轮转日志记录
+
+### 开发环境搭建
+```bash
+# 克隆项目
+git clone <repository-url>
+cd AUTO-mihoyo-all
+
+# 安装依赖
+npm install
+
+# 启动开发模式
+npm run dev
+
+# 构建应用
+npm run build
+```
+
+### 项目脚本
+- `npm start` - 启动应用
+- `npm run dev` - 开发模式(带调试)
+- `npm run build` - 构建便携版
+- `npm run dist` - 构建所有版本
+- `npm run pack` - 仅打包不压缩
+
+### 便携版特性
+- ✅ **零安装**: 下载即用，无需安装过程
+- ✅ **自包含**: 所有依赖和运行时已内置
+- ✅ **绿色软件**: 不修改系统，不写注册表
+- ✅ **配置便携**: 配置和日志与exe在同目录
+- ✅ **自动配置**: 首次运行自动生成配置文件
+
+### 自动化配置功能
+- 🔍 **路径自动检测**: 智能扫描常见安装位置
+- 📝 **配置模板**: 预设各游戏的默认参数
+- ✅ **配置验证**: 自动验证路径和参数有效性
+- 🔄 **配置同步**: 实时保存和同步配置更改
+
+### 进程监控系统
+- 📊 **实时监控**: 监控游戏进程运行状态
+- ⏱️ **运行时长**: 记录和显示进程运行时间
+- 🎯 **灵活配置**: 可选择监控的进程名称
+- 🔍 **智能检测**: 跨平台进程状态检测
+
+### 使用方式
+
+#### 方式一: 便携版exe (推荐)
+```bash
+# 下载便携版exe文件
+# 双击运行即可，首次运行会自动创建配置
+
+# 自动运行模式
+AUTO-mihoyo-all.exe --auto-run
+```
+
+#### 方式二: Node.js命令行
+```bash
+# 查看帮助
+node AutoGAME.js --help
+
+# 验证配置
+node AutoGAME.js --validate
+
+# 自动检测游戏
+node AutoGAME.js --auto-detect
+
+# 运行单个游戏
+node AutoGAME.js --game=mihoyoBBSTools
+
+# 运行所有游戏
+node AutoGAME.js --all
+```
+
+#### 方式三: 使用批处理脚本
+```bash
+# Windows 启动脚本
+start.bat              # 启动GUI应用
+auto-run.bat           # 自动运行所有游戏
+run-nodejs.bat --help  # Node.js命令行版本
+build.bat              # 构建便携版
+```
+
+### 配置文件说明
+配置文件采用JSON格式，支持以下选项：
+
+```json
+{
+  "version": "1.0.0",
+  "autoRun": false,                    // 启动时自动运行
+  "logLevel": "info",                  // 日志级别
+  "maxLogFiles": 10,                   // 最大日志文件数
+  "processMonitoring": {
+    "enabled": true,                   // 启用进程监控
+    "checkInterval": 5000             // 检查间隔(毫秒)
+  },
+  "games": {
+    "gameKey": {
+      "enabled": false,                // 是否启用
+      "name": "游戏名称",
+      "path": "可执行文件路径",
+      "workingDir": "工作目录",
+      "arguments": ["启动参数"],
+      "waitTime": 30000,              // 等待时间(毫秒)
+      "monitoring": {
+        "enabled": false,             // 是否监控此游戏
+        "processName": "进程名",
+        "customProcessName": ""       // 自定义进程名
+      }
+    }
+  }
+}
+```
+
+## 🔧 故障排除
+
+### 常见问题
+
+1. **应用无法启动**
+   - 检查是否安装了Node.js运行时
+   - 确认config.json文件格式正确
+   - 查看log目录下的错误日志
+
+2. **游戏路径检测失败**
+   - 手动设置游戏可执行文件路径
+   - 确认游戏已正确安装
+   - 检查文件权限设置
+
+3. **进程监控不工作**
+   - 确认进程名称设置正确
+   - 检查系统权限设置
+   - 验证监控功能已启用
+
+4. **配置文件损坏**
+   - 删除config.json文件，重新启动应用
+   - 应用会自动从模板重新创建配置
+
+### 日志文件位置
+- **便携版**: exe同目录下的`log/`文件夹
+- **开发版**: 项目根目录下的`log/`文件夹
+
+### 联系支持
+如遇到问题，请：
+1. 查看最新的日志文件
+2. 确认配置文件格式正确
+3. 提供详细的错误信息和系统环境

@@ -1,0 +1,27 @@
+{
+  "name": "AUTO-mihoyo-all",
+  "version": "1.0.0",
+  "buildDate": "2025-07-06",
+  "description": "米哈游游戏自动化统一管理工具",
+  "author": "AUTO-mihoyo-all Team",
+  "license": "MIT",
+  "features": [
+    "统一配置管理",
+    "便携版优化", 
+    "进程监控",
+    "自动路径检测",
+    "双重运行模式",
+    "详细日志记录"
+  ],
+  "supportedGames": [
+    "MihoyoBBSTools",
+    "March7thAssistant", 
+    "ZenlessZoneZero-OneDragon",
+    "better-genshin-impact"
+  ],
+  "requirements": {
+    "electron": "^27.0.0",
+    "node": ">=16.0.0",
+    "platform": ["win32"]
+  }
+}

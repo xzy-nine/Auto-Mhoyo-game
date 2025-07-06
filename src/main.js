@@ -1,0 +1,459 @@
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require('electron');
+const path = require('path');
+const fs = require('fs-extra');
+const AutoGAME = require('./AutoGAME');
+const DiagnosticTool = require('./diagnostic');
+
+class MainProcess {
+  constructor() {
+    this.mainWindow = null;
+    this.autoGame = new AutoGAME();
+    this.autoGame.setMainProcess(this); // 设置主进程引用
+    this.isDev = process.argv.includes('--dev') || !app.isPackaged;
+    this.isAutoRun = process.argv.includes('--auto-run');
+    
+    // 设置便携版应用目录环境变量
+    if (app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR) {
+      process.env.PORTABLE_EXECUTABLE_DIR = path.dirname(process.execPath);
+    }
+    
+    this.initializeApp();
+  }
+
+  initializeApp() {
+    app.whenReady().then(async () => {
+      console.log('Electron 应用启动中...');
+      console.log('当前工作目录:', process.cwd());
+      console.log('应用路径:', app.getAppPath());
+      console.log('用户数据目录:', app.getPath('userData'));
+      console.log('是否打包:', app.isPackaged);
+      
+      // 初始化 AutoGAME
+      const initialized = await this.autoGame.initializeApp();
+      if (!initialized) {
+        console.error('AutoGAME 初始化失败');
+        if (!this.isDev) {
+          app.quit();
+          return;
+        }
+      }
+      
+      this.createWindow();
+      this.setupIpcHandlers();
+      this.setupGlobalShortcuts();
+      this.startProgressMonitoring();
+      
+      if (this.isAutoRun) {
+        this.handleAutoRun();
+      }
+    });
+
+    app.on('window-all-closed', () => {
+      // 清理全局快捷键
+      globalShortcut.unregisterAll();
+      
+      if (process.platform !== 'darwin') {
+        app.quit();
+      }
+    });
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        this.createWindow();
+      }
+    });
+
+    app.on('will-quit', () => {
+      // 确保在应用退出前清理全局快捷键
+      globalShortcut.unregisterAll();
+    });
+  }
+
+  createWindow() {
+    this.mainWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js')
+      },
+      icon: path.join(__dirname, '../assets/icon.png'),
+      show: false
+    });
+
+    this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
+
+    if (this.isDev) {
+      this.mainWindow.webContents.openDevTools();
+    }
+
+    this.mainWindow.once('ready-to-show', () => {
+      this.mainWindow.show();
+    });
+  }
+
+  setupIpcHandlers() {
+    // 获取配置
+    ipcMain.handle('get-config', async () => {
+      try {
+        return await this.autoGame.getConfig();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 保存配置
+    ipcMain.handle('save-config', async (event, config) => {
+      try {
+        await this.autoGame.saveConfig(config);
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 验证配置
+    ipcMain.handle('validate-config', async () => {
+      try {
+        return await this.autoGame.validateConfig();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 修改原有的运行方法，使用安全版本
+    ipcMain.handle('run-game', async (event, gameKey) => {
+      try {
+        const result = await this.autoGame.runSingleGameSafe(gameKey);
+        return result;
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 执行所有游戏 - 使用安全版本
+    ipcMain.handle('run-all-games', async () => {
+      try {
+        const result = await this.autoGame.runAllGamesSafe();
+        return result;
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取监控状态
+    ipcMain.handle('get-monitoring-status', async () => {
+      try {
+        return this.autoGame.getMonitoringStatus();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 停止监控
+    ipcMain.handle('stop-monitoring', async () => {
+      try {
+        this.autoGame.stopMonitoring();
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取任务队列状态
+    ipcMain.handle('get-queue-status', async () => {
+      try {
+        return this.autoGame.getQueueStatus();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 清空任务队列
+    ipcMain.handle('clear-queue', async () => {
+      try {
+        this.autoGame.clearQueue();
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取进程状态
+    ipcMain.handle('get-process-status', async () => {
+      try {
+        return this.autoGame.getProcessStatus();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 选择文件
+    ipcMain.handle('select-file', async (event, options = {}) => {
+      const result = await dialog.showOpenDialog(this.mainWindow, {
+        properties: ['openFile'],
+        filters: [
+          { name: 'Executable Files', extensions: ['exe'] },
+          { name: 'Python Files', extensions: ['py'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        ...options
+      });
+
+      return result.canceled ? null : result.filePaths[0];
+    });
+
+    // 选择文件夹
+    ipcMain.handle('select-directory', async () => {
+      const result = await dialog.showOpenDialog(this.mainWindow, {
+        properties: ['openDirectory']
+      });
+
+      return result.canceled ? null : result.filePaths[0];
+    });
+
+    // 打开外部链接
+    ipcMain.handle('open-external', async (event, url) => {
+      await shell.openExternal(url);
+    });
+
+    // 获取日志文件
+    ipcMain.handle('get-logs', async () => {
+      try {
+        return await this.autoGame.getLogs();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 自动检测游戏路径
+    ipcMain.handle('auto-detect-games', async () => {
+      try {
+        return await this.autoGame.autoDetectGames();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取应用信息
+    ipcMain.handle('get-app-info', async () => {
+      try {
+        return {
+          appDir: this.autoGame.appDir,
+          configPath: this.autoGame.configPath,
+          logDir: this.autoGame.logDir,
+          isPackaged: app.isPackaged,
+          version: app.getVersion(),
+          platform: process.platform
+        };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 检查文件是否存在
+    ipcMain.handle('file-exists', async (event, filePath) => {
+      try {
+        return await fs.pathExists(filePath);
+      } catch (error) {
+        return false;
+      }
+    });
+
+    // 检查目录是否存在
+    ipcMain.handle('directory-exists', async (event, dirPath) => {
+      try {
+        const stat = await fs.stat(dirPath);
+        return stat.isDirectory();
+      } catch (error) {
+        return false;
+      }
+    });
+
+    // 读取文件内容
+    ipcMain.handle('read-file', async (event, filePath) => {
+      try {
+        const content = await fs.readFile(filePath, 'utf8');
+        return { content };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 写入文件内容
+    ipcMain.handle('write-file', async (event, filePath, content) => {
+      try {
+        await fs.writeFile(filePath, content, 'utf8');
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 创建目录
+    ipcMain.handle('create-directory', async (event, dirPath) => {
+      try {
+        await fs.ensureDir(dirPath);
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取目录内容
+    ipcMain.handle('read-directory', async (event, dirPath) => {
+      try {
+        const items = await fs.readdir(dirPath, { withFileTypes: true });
+        const result = items.map(item => ({
+          name: item.name,
+          isDirectory: item.isDirectory(),
+          isFile: item.isFile(),
+          path: path.join(dirPath, item.name)
+        }));
+        return { items: result };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 启动/停止进程监控
+    ipcMain.handle('start-process-monitoring', async () => {
+      try {
+        this.autoGame.startProcessMonitoring();
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    ipcMain.handle('stop-process-monitoring', async () => {
+      try {
+        this.autoGame.stopProcessMonitoring();
+        return { success: true };
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 运行诊断
+    ipcMain.handle('run-diagnostics', async () => {
+      try {
+        const diagnostic = new DiagnosticTool();
+        const result = await diagnostic.runDiagnostics();
+        return result;
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 停止所有进程
+    ipcMain.handle('stop-all-processes', async () => {
+      try {
+        return await this.autoGame.stopAllProcesses();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 停止指定进程
+    ipcMain.handle('stop-process', async (event, processKey) => {
+      try {
+        return await this.autoGame.stopProcess(processKey);
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取实时日志流
+    ipcMain.handle('get-realtime-logs', async () => {
+      try {
+        return await this.autoGame.getRealtimeLogs();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+
+    // 获取签到详情
+    ipcMain.handle('get-signin-details', async () => {
+      try {
+        return await this.autoGame.getSignInDetails();
+      } catch (error) {
+        return { error: error.message };
+      }
+    });
+  }
+
+  async handleAutoRun() {
+    try {
+      const config = await this.autoGame.getConfig();
+      if (config.autoRun) {
+        setTimeout(async () => {
+          await this.autoGame.runAllGames();
+          if (!this.isDev) {
+            app.quit();
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Auto run failed:', error);
+    }
+  }
+
+  // 向渲染进程发送事件
+  sendToRenderer(channel, data) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send(channel, data);
+    }
+  }
+
+  // 开始监控并发送更新
+  startProgressMonitoring() {
+    // 监控进程状态变化
+    setInterval(async () => {
+      try {
+        const status = this.autoGame.getProcessStatus();
+        this.sendToRenderer('process-update', status);
+      } catch (error) {
+        console.error('Failed to get process status:', error);
+      }
+    }, 5000);
+
+    // 监控配置文件变化
+    try {
+      const chokidar = require('chokidar');
+      const configWatcher = chokidar.watch(this.autoGame.configPath);
+      configWatcher.on('change', async () => {
+        try {
+          const config = await this.autoGame.getConfig();
+          this.sendToRenderer('config-update', config);
+        } catch (error) {
+          console.error('Failed to reload config:', error);
+        }
+      });
+    } catch (error) {
+      console.warn('File watching disabled (chokidar not available):', error.message);
+    }
+  }
+
+  setupGlobalShortcuts() {
+    // 注册F12快捷键来切换开发者工具
+    globalShortcut.register('F12', () => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.toggleDevTools();
+      }
+    });
+
+    // 也保留原有的窗口内键盘监听作为备用
+    if (this.mainWindow) {
+      this.mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.key === 'F12') {
+          this.mainWindow.webContents.toggleDevTools();
+        }
+      });
+    }
+  }
+}
+
+// 创建应用实例
+new MainProcess();

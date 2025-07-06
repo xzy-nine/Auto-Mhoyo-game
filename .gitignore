@@ -3,3 +3,87 @@ logs/
 # 忽略 config.json 文件
 config.json
 
+# Node.js 相关
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# 构建输出
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# 运行时数据
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 缓存文件
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# 临时文件
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Electron 相关
+app/node_modules/
+release-builds/
+.electron-gyp/
+
+# 测试覆盖率
+coverage/
+*.lcov
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Optional eslint cache
+.eslintcache
+

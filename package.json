@@ -1,0 +1,57 @@
+{
+  "name": "auto-mihoyo-all",
+  "version": "1.0.0",
+  "description": "Electron设计的米哈游游戏自动化统一管理工具",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never",
+    "pack": "electron-builder --dir"
+  },
+  "keywords": [
+    "electron",
+    "mihoyo",
+    "game",
+    "automation"
+  ],
+  "author": "AUTO-mihoyo-all",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.3.11",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "fs-extra": "^11.1.1",
+    "iconv-lite": "^0.6.3",
+    "node-schedule": "^2.1.1"
+  },
+  "build": {
+    "appId": "com.automihoyo.all",
+    "productName": "AUTO-mihoyo-all",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "config.json.template"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  }
+}

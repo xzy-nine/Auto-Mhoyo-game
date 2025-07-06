@@ -1,48 +1,65 @@
 {
-    "games": {
-        "mihoyo_sign": {
-            "name": "米游社签到",
-            "enabled": true,
-            "executable_path": "【必须修改】请替换为您的MihoyoBBSTools项目中main.py文件的完整路径，如: E:\\\\gamedata\\\\AutoGAME\\\\MihoyoBBSTools\\\\main.py",
-            "run_as_script": true,
-            "args": [],
-            "wait_timeout": 30,
-            "post_execution_wait": 5
-        },
-        "star_rail": {
-            "name": "崩坏:星穹铁道",
-            "enabled": true,
-            "executable_path": "【必须修改】请替换为您的March7thAssistant项目中March7th Assistant.exe文件的完整路径",
-            "run_as_script": false,
-            "args": [],
-            "process_name": "StarRail.exe",
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        },
-        "zenless_zone_zero": {
-            "name": "绝区零",
-            "enabled": true,
-            "executable_path": "【必须修改】请替换为您的ZenlessZoneZero-OneDragon项目中OneDragon Scheduler.exe文件的完整路径",
-            "run_as_script": false,
-            "args": [],
-            "process_name": "ZenlessZoneZero.exe",
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        },
-        "genshin": {
-            "name": "原神",
-            "enabled": true,
-            "executable_path": "【必须修改】请替换为您的BetterGI项目中BetterGI.exe文件的完整路径",
-            "run_as_script": false,
-            "args": ["startOneDragon"],
-            "process_name": "YuanShen.exe",
-            "launch_timeout": 60,
-            "post_execution_wait": 15
-        }
+  "version": "1.0.0",
+  "lastUpdated": "",
+  "autoRun": false,
+  "logLevel": "info",
+  "maxLogFiles": 10,
+  "processMonitoring": {
+    "enabled": true,
+    "checkInterval": 5000
+  },
+  "games": {
+    "mihoyoBBSTools": {
+      "enabled": false,
+      "name": "米游社签到工具",
+      "path": "",
+      "workingDir": "",
+      "arguments": [],
+      "waitTime": 5000,
+      "monitoring": {
+        "enabled": false,
+        "processName": "python.exe",
+        "customProcessName": ""
+      }
     },
-    "global_settings": {
-        "user_choice_timeout": 10,
-        "exit_countdown": 3,
-        "max_log_files": 5,
+    "march7thAssistant": {
+      "enabled": false,
+      "name": "三月七助手",
+      "path": "",
+      "workingDir": "",
+      "arguments": [],
+      "waitTime": 60000,
+      "monitoring": {
+        "enabled": false,
+        "processName": "March7thAssistant.exe",
+        "customProcessName": ""
+      }
     },
+    "zenlessZoneZero": {
+      "enabled": false,
+      "name": "绝区零一条龙",
+      "path": "",
+      "workingDir": "",
+      "arguments": [],
+      "waitTime": 60000,
+      "monitoring": {
+        "enabled": false,
+        "processName": "OneDragon.exe",
+        "customProcessName": ""
+      }
+    },
+    "betterGenshinImpact": {
+      "enabled": false,
+      "name": "原神BetterGI",
+      "path": "",
+      "workingDir": "",
+      "arguments": ["--background"],
+      "waitTime": 60000,
+      "monitoring": {
+        "enabled": false,
+        "processName": "BetterGI.exe",
+        "customProcessName": ""
+      }
+    }
+  }
 }
