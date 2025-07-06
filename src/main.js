@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
 const AutoGAME = require('./AutoGAME');
@@ -107,8 +107,13 @@ class MainProcess {
       // 禁用动画
       useContentSize: true,
       // 强制深色模式
-      darkTheme: true
+      darkTheme: true,
+      // 隐藏菜单栏
+      autoHideMenuBar: true
     });
+
+    // 完全移除应用菜单
+    Menu.setApplicationMenu(null);
 
     // 监听窗口事件，确保只显示一次
     let hasShown = false;
