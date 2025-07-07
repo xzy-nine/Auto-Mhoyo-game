@@ -975,7 +975,7 @@ class AutoMihoyoApp {
         if (!container) return;
         
         if (!this.realtimeLogs || Object.keys(this.realtimeLogs).length === 0) {
-            container.innerHTML = '<div class="empty-state">等待日志输出...</div>';
+            container.innerHTML = '<div class="empty-state">等待任务执行...</div>';
             return;
         }
         
@@ -991,9 +991,9 @@ class AutoMihoyoApp {
             });
         });
         
-        // 按时间排序并显示最近的20条
-        allLogs.sort((a, b) => b.timestamp - a.timestamp);
-        const recentLogs = allLogs.slice(0, 20);
+        // 按时间排序并显示最近的20条 (最新的在底部)
+        allLogs.sort((a, b) => a.timestamp - b.timestamp);
+        const recentLogs = allLogs.slice(-20);
         
         container.innerHTML = recentLogs.map(log => 
             `<div class="log-entry">
@@ -1002,8 +1002,8 @@ class AutoMihoyoApp {
             </div>`
         ).join('');
         
-        // 自动滚动到顶部（最新日志）
-        container.scrollTop = 0;
+        // 自动滚动到底部（最新日志）
+        container.scrollTop = container.scrollHeight;
     }
     
     // 更新队列状态显示
@@ -1720,14 +1720,15 @@ class AutoMihoyoApp {
                     gameKey,
                     gameName: this.config.games[gameKey]?.name || gameKey,
                     content: log,
-                    timestamp: Date.now() - (logs.length - index) * 1000 // 模拟时间戳
+                    timestamp: Date.now() - (logs.length - index - 1) * 1000, // 修正时间戳计算
+                    originalIndex: logs.length - 15 + index // 添加原始索引用于排序
                 });
             });
         });
         
-        // 按时间排序，最新的在前
-        allLogs.sort((a, b) => b.timestamp - a.timestamp);
-        const recentLogs = allLogs.slice(0, 30); // 只显示最近30条
+        // 按时间排序，最新的在底部
+        allLogs.sort((a, b) => a.timestamp - b.timestamp);
+        const recentLogs = allLogs.slice(-30); // 只显示最近30条
         
         container.innerHTML = recentLogs.map(log => 
             `<div class="log-entry">
@@ -1736,8 +1737,8 @@ class AutoMihoyoApp {
             </div>`
         ).join('');
         
-        // 自动滚动到顶部（最新日志）
-        container.scrollTop = 0;
+        // 自动滚动到底部（最新日志）
+        container.scrollTop = container.scrollHeight;
     }
     
     escapeHtml(text) {

@@ -166,7 +166,8 @@
     
     /* 调整日志容器 */
     .realtime-log-container {
-        height: 250px;
+        min-height: 200px;
+        max-height: calc(100vh - 350px);
         font-size: 0.8rem;
     }
 }
@@ -302,7 +303,8 @@
     }
     
     .realtime-log-container {
-        height: 200px;
+        min-height: 150px;
+        max-height: calc(100vh - 400px);
     }
 }
 
@@ -323,6 +325,24 @@
     
     .quick-actions {
         grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .realtime-log-container {
+        max-height: calc(100vh - 300px);
+        font-size: 0.9rem;
+    }
+}
+
+/* 超大屏幕优化 */
+@media (min-width: 1800px) {
+    .dashboard-container {
+        grid-template-columns: 1fr 2fr;
+    }
+    
+    .realtime-log-container {
+        max-height: calc(100vh - 250px);
+        font-size: 1rem;
+        line-height: 1.5;
     }
 }
 

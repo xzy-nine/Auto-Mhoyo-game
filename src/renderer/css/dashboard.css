@@ -18,6 +18,8 @@
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
 }
 
 .dashboard-section h3 {
@@ -287,12 +289,27 @@
     color: var(--log-text);
     border-radius: 8px;
     padding: 1rem;
-    height: 300px;
+    flex: 1;
+    min-height: 200px;
+    max-height: calc(100vh - 400px);
     overflow-y: auto;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 0.85rem;
     line-height: 1.4;
     border: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    scroll-behavior: smooth;
+}
+
+.realtime-log-container .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+    font-style: italic;
+    opacity: 0.7;
 }
 
 .realtime-log-container .log-entry {
@@ -326,4 +343,9 @@
 .realtime-log-container::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 3px;
+}
+
+/* 确保日志条目不会被截断 */
+.realtime-log-container .log-entry:last-child {
+    margin-bottom: 0;
 }
