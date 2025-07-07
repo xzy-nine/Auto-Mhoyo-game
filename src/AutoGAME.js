@@ -12,6 +12,11 @@ class AutoGAME {
     this.logDir = path.join(this.appDir, 'log');
     this.config = null;
     
+    // 生成本次启动的统一日志文件名
+    const startupTime = new Date();
+    const timestamp = startupTime.toISOString().replace(/[:.]/g, '-').slice(0, -5); // 格式: 2024-01-01T12-30-45
+    this.currentLogFile = path.join(this.logDir, `AutoGAME_${timestamp}.log`);
+    
     // 初始化进程监控器
     this.processMonitor = new ProcessMonitor(this);
     
@@ -231,10 +236,10 @@ class AutoGAME {
         throw new Error(`游戏 ${game.name} 未设置可执行文件路径`);
       }
 
-      const logFile = path.join(this.logDir, `${gameKey}_${Date.now()}.log`);
+      const logFile = this.currentLogFile;
       const startTime = Date.now();
 
-      await this.writeLog(logFile, `开始执行: ${game.name}`);
+      await this.writeLog(logFile, `\n=== 开始执行游戏: ${game.name} (${gameKey}) ===`);
       await this.writeLog(logFile, `可执行文件: ${game.path}`);
       await this.writeLog(logFile, `工作目录: ${game.workingDir || path.dirname(game.path)}`);
       await this.writeLog(logFile, `参数: ${(game.arguments || []).join(' ')}`);
@@ -666,6 +671,8 @@ class AutoGAME {
               }, 3000);
             }
             
+            await this.writeLog(logFile, `=== 游戏执行成功完成: ${game.name} ===\n`);
+            
             resolve({
               success: true,
               gameKey,
@@ -678,6 +685,7 @@ class AutoGAME {
           } else {
             const errorMsg = `${game.name} 执行失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
             await this.writeLog(logFile, `失败: ${errorMsg}`);
+            await this.writeLog(logFile, `=== 游戏执行失败完成: ${game.name} ===\n`);
             
             // 清理失败任务的进程状态
             const processInfo = this.processMonitor.runningProcesses.get(gameKey);
@@ -703,6 +711,7 @@ class AutoGAME {
           await this.writeLog(logFile, `启动失败: ${formattedError}`);
           await this.writeLog(logFile, `错误代码: ${error.code || 'Unknown'}`);
           await this.writeLog(logFile, `错误堆栈: ${error.stack}`);
+          await this.writeLog(logFile, `=== 游戏启动失败: ${game.name} ===\n`);
           
           // 清理启动失败任务的进程状态
           const processInfo = this.processMonitor.runningProcesses.get(gameKey);
@@ -775,6 +784,8 @@ class AutoGAME {
         }
       });
     } catch (error) {
+      // 记录执行失败的分隔符
+      await this.writeLog(this.currentLogFile, `=== 游戏执行失败: ${error.message} ===\n`);
       console.error(`执行游戏失败: ${error.message}`);
       throw new Error(`执行游戏失败: ${error.message}`);
     }
@@ -909,14 +920,9 @@ class AutoGAME {
   
   async getRealtimeLogs() {
     try {
-      const logFiles = await fs.readdir(this.logDir);
-      const todayLogFile = logFiles.find(file => 
-        file.startsWith(new Date().toISOString().slice(0, 10))
-      );
-      
-      if (todayLogFile) {
-        const logPath = path.join(this.logDir, todayLogFile);
-        const content = await fs.readFile(logPath, 'utf8');
+      // 直接读取当前启动的日志文件
+      if (fsSync.existsSync(this.currentLogFile)) {
+        const content = await fs.readFile(this.currentLogFile, 'utf8');
         return { content };
       }
       
@@ -950,16 +956,11 @@ class AutoGAME {
   
   async getSignInDetails() {
     try {
-      // 从日志中解析签到详情
+      // 从当前启动的日志文件中解析签到详情
       const signInDetails = {};
-      const logFiles = await fs.readdir(this.logDir);
-      const todayLogFile = logFiles.find(file => 
-        file.startsWith(new Date().toISOString().slice(0, 10))
-      );
       
-      if (todayLogFile) {
-        const logPath = path.join(this.logDir, todayLogFile);
-        const content = await fs.readFile(logPath, 'utf8');
+      if (fsSync.existsSync(this.currentLogFile)) {
+        const content = await fs.readFile(this.currentLogFile, 'utf8');
         
         // 解析米游社签到信息
         if (content.includes('米游社签到')) {
@@ -1023,6 +1024,15 @@ class AutoGAME {
       
       // 确保日志目录存在
       await this.initializeLogDirectory();
+      
+      // 在统一日志文件中记录启动信息
+      const startupTime = new Date().toISOString();
+      await this.writeLog(this.currentLogFile, `\n${'='.repeat(80)}`);
+      await this.writeLog(this.currentLogFile, `AutoGAME 启动时间: ${startupTime}`);
+      await this.writeLog(this.currentLogFile, `应用目录: ${this.appDir}`);
+      await this.writeLog(this.currentLogFile, `配置文件: ${this.configPath}`);
+      await this.writeLog(this.currentLogFile, `日志文件: ${this.currentLogFile}`);
+      await this.writeLog(this.currentLogFile, `${'='.repeat(80)}\n`);
       
       // 初始化配置文件
       await this.getConfig();
@@ -1175,10 +1185,9 @@ class AutoGAME {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] ${message}\n`;
     
-    // 写入到今天的日志文件
-    const todayLog = path.join(this.logDir, `${new Date().toISOString().slice(0, 10)}.log`);
+    // 写入到当前启动的统一日志文件
     try {
-      require('fs').appendFileSync(todayLog, logMessage);
+      require('fs').appendFileSync(this.currentLogFile, logMessage);
     } catch (error) {
       // 忽略写入错误
     }
