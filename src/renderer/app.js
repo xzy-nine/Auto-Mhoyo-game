@@ -6,10 +6,12 @@ class AutoMihoyoApp {
         this.batchTaskMonitorInterval = null; // 批量任务监控间隔
         this.dashboardUpdateInterval = null;
         this.queueUpdateInterval = null; // 新增：队列状态快速更新间隔
+        this.dashboardUpdateTimeout = null; // 仪表盘更新防抖
         this.recentActivity = [];
         this.signInDetails = {}; // 签到详情
         this.realtimeLogs = {}; // 实时日志
         this.logUpdateTimeout = null; // 日志更新节流器
+        this.lastQueueStatusHash = null; // 队列状态缓存，避免重复渲染
         // 移除前端时长统计：this.totalScriptRuntime = 0; 
         // 移除前端时长统计：this.scriptStartTimes = {}; 
         
@@ -174,6 +176,8 @@ class AutoMihoyoApp {
         
         // 如果切换到仪表盘，更新仪表盘数据
         if (tabName === 'dashboard') {
+            // 清除缓存以确保切换到仪表盘时重新渲染队列状态
+            this.lastQueueStatusHash = null;
             this.updateDashboard();
         }
         
@@ -645,33 +649,81 @@ class AutoMihoyoApp {
         return hasCompletionSignal && !hasRecentExecution;
     }
     
+    // 更新运行按钮状态的专用方法
+    updateRunAllButtonState(state, forceUpdate = false) {
+        const runAllBtn = document.getElementById('runAllBtn');
+        if (!runAllBtn) return;
+        
+        const states = {
+            idle: { text: '▶️ 运行全部', disabled: false, dataState: 'idle' },
+            starting: { text: '🚀 正在启动...', disabled: true, dataState: 'starting' },
+            executing: { text: '📋 执行中...', disabled: true, dataState: 'executing' },
+            completed: { text: '✅ 执行完成', disabled: true, dataState: 'completed' }
+        };
+        
+        const stateConfig = states[state];
+        if (!stateConfig) return;
+        
+        // 只有在状态真正改变时才更新，或者强制更新
+        if (forceUpdate || runAllBtn.textContent !== stateConfig.text) {
+            runAllBtn.textContent = stateConfig.text;
+            runAllBtn.disabled = stateConfig.disabled;
+            runAllBtn.setAttribute('data-state', stateConfig.dataState);
+            
+            // 强制刷新DOM并添加状态变化日志
+            requestAnimationFrame(() => {
+                runAllBtn.offsetHeight; // 触发重排
+                console.log(`运行按钮状态已更新: ${state} -> "${stateConfig.text}"`);
+            });
+        }
+    }
+
     async runAllGames() {
+        console.log('🎯 runAllGames 开始执行');
         const runAllBtn = document.getElementById('runAllBtn');
         const originalText = runAllBtn?.textContent || '▶️ 运行全部';
         
         this.showLoading(true);
         
         // 第一阶段：显示正在启动
-        if (runAllBtn) {
-            runAllBtn.disabled = true;
-            runAllBtn.textContent = '🚀 正在启动...';
-        }
+        console.log('🚀 第一阶段：切换到启动状态');
+        this.updateRunAllButtonState('starting', true);
+        
+        // 强制刷新 UI，确保第一阶段立即显示
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    console.log('✅ UI 刷新完成，准备进入下一阶段');
+                    resolve();
+                }, 100); // 短暂延迟确保UI更新
+            });
+        });
         
         try {
             // 显示启动提示
             this.showNotification('开始批量执行所有启用的游戏任务', 'info');
             
+            // 在短暂延迟后立即进入第二阶段，不等待后端完全响应
+            const statusTimer = setTimeout(() => {
+                console.log('📋 第二阶段：切换到执行中状态（定时器触发）');
+                this.updateRunAllButtonState('executing');
+            }, 800); // 800ms 后进入执行中状态
+            
+            console.log('⏳ 开始调用后端 API');
             const result = await window.electronAPI.runAllGames();
+            console.log('✅ 后端 API 调用完成');
+            
             if (result.error) {
+                clearTimeout(statusTimer);
                 throw new Error(result.error);
             }
             
             const { summary } = result;
             
-            // 第二阶段：任务已加入队列，显示执行中
-            if (runAllBtn) {
-                runAllBtn.textContent = '📋 执行中...';
-            }
+            // 确保按钮已经进入执行中状态
+            clearTimeout(statusTimer);
+            console.log('📋 第二阶段：确保执行中状态（API 完成后）');
+            this.updateRunAllButtonState('executing');
             
             this.showNotification(
                 `✅ 批量任务已启动: ${summary.total} 个任务加入队列`, 
@@ -693,15 +745,14 @@ class AutoMihoyoApp {
             this.updateSidebarProcesses();
             
             // 开始监控任务完成状态
+            console.log('🔍 开始监控任务完成状态');
             this.startBatchTaskMonitoring(runAllBtn, originalText);
             
         } catch (error) {
+            console.error('❌ runAllGames 执行失败:', error);
             this.showNotification(`❌ 批量执行失败: ${error.message}`, 'error');
             // 发生错误时立即恢复按钮
-            if (runAllBtn) {
-                runAllBtn.disabled = false;
-                runAllBtn.textContent = originalText;
-            }
+            this.updateRunAllButtonState('idle');
         } finally {
             this.showLoading(false);
         }
@@ -714,49 +765,69 @@ class AutoMihoyoApp {
         }
         
         let allTasksCompleted = false;
+        let consecutiveEmptyChecks = 0; // 连续空队列检查次数
+        
+        console.log('🔍 开始批量任务监控，检查间隔：1秒');
         
         this.batchTaskMonitorInterval = setInterval(async () => {
             try {
                 const status = await this.getQueueStatusFromBackend();
+                console.log(`🔍 监控检查 - 队列长度: ${status?.queueLength}, 正在执行: ${status?.isExecutingTask}, 连续空检查: ${consecutiveEmptyChecks}`);
+                
                 if (status && status.queueLength === 0 && !status.isExecutingTask) {
-                    // 所有任务都完成了
-                    if (!allTasksCompleted) {
+                    consecutiveEmptyChecks++;
+                    console.log(`✅ 队列为空，连续检查次数: ${consecutiveEmptyChecks}/2`);
+                    
+                    // 需要连续2次检查都确认队列为空，才认为任务真正完成
+                    // 这样可以避免因为网络延迟等原因造成的误判
+                    if (consecutiveEmptyChecks >= 2 && !allTasksCompleted) {
                         allTasksCompleted = true;
+                        console.log('🎉 第三阶段：所有任务完成，切换到完成状态');
                         
                         // 第三阶段：显示执行完成
-                        if (runAllBtn) {
-                            runAllBtn.textContent = '✅ 执行完成';
-                        }
+                        this.updateRunAllButtonState('completed');
                         
                         this.showNotification('🎉 所有批量任务已完成！', 'success');
                         
                         // 2秒后恢复按钮状态
                         setTimeout(() => {
-                            if (runAllBtn) {
-                                runAllBtn.disabled = false;
-                                runAllBtn.textContent = originalText;
-                            }
+                            console.log('🔄 最终阶段：恢复按钮到初始状态');
+                            this.updateRunAllButtonState('idle');
                         }, 2000);
                         
                         // 清除监控
                         clearInterval(this.batchTaskMonitorInterval);
                         this.batchTaskMonitorInterval = null;
+                        console.log('🛑 批量任务监控已停止');
+                    }
+                } else {
+                    // 如果队列不为空或正在执行任务，重置连续检查计数
+                    if (consecutiveEmptyChecks > 0) {
+                        console.log(`🔄 队列非空，重置连续检查计数`);
+                    }
+                    consecutiveEmptyChecks = 0;
+                    
+                    // 确保按钮显示为执行中状态
+                    if (!allTasksCompleted) {
+                        this.updateRunAllButtonState('executing');
                     }
                 }
             } catch (error) {
-                console.error('监控批量任务状态失败:', error);
+                console.error('❌ 监控批量任务状态失败:', error);
+                consecutiveEmptyChecks = 0; // 出错时重置计数
             }
-        }, 2000); // 每2秒检查一次
+        }, 1000); // 改为每1秒检查一次，提高响应速度
         
         // 设置最大监控时间（10分钟），避免无限监控
         setTimeout(() => {
             if (this.batchTaskMonitorInterval) {
+                console.log('⏰ 监控超时，自动停止');
                 clearInterval(this.batchTaskMonitorInterval);
                 this.batchTaskMonitorInterval = null;
                 
-                if (runAllBtn && !allTasksCompleted) {
-                    runAllBtn.disabled = false;
-                    runAllBtn.textContent = originalText;
+                if (!allTasksCompleted) {
+                    this.updateRunAllButtonState('idle');
+                    this.showNotification('⚠️ 监控超时，按钮状态已重置', 'warning');
                 }
             }
         }, 600000); // 10分钟超时
@@ -844,33 +915,23 @@ class AutoMihoyoApp {
             if (this.currentTab === 'monitor') {
                 await this.updateProcessMonitor();
             }
-            // 定期更新队列状态（无论在哪个标签页）
-            this.updateQueueStatus();
-        }, 3000); // 降低更新间隔到3秒，让等待时间显示更实时
-    }
-
-    // 启动队列状态快速更新器
-    startQueueStatusUpdater() {
-        if (this.queueUpdateInterval) {
-            clearInterval(this.queueUpdateInterval);
-        }
-        
-        // 每1秒更新一次队列等待时间显示，让倒计时效果更流畅
-        this.queueUpdateInterval = setInterval(() => {
-            this.updateQueueWaitTimes();
-        }, 1000);
-    }
-
-    // 更新队列等待时间显示（仅更新时间，不重新渲染整个队列）
-    updateQueueWaitTimes() {
-        const queueItems = document.querySelectorAll('.queue-item');
-        queueItems.forEach((item, index) => {
-            const waitTimeElement = item.querySelector('.queue-wait-time');
-            if (waitTimeElement) {
-                // 这里可以添加更精确的时间计算逻辑
-                // 目前保持原有的更新逻辑，避免频繁的网络请求
+            // 减少队列状态更新频率，避免闪烁
+            // 只有当前标签是仪表盘时才更新队列状态
+            if (this.currentTab === 'dashboard') {
+                this.updateQueueStatus();
             }
-        });
+        }, 5000); // 增加更新间隔到5秒，减少频繁更新
+    }
+
+    // 启动队列状态快速更新器（已禁用以避免闪烁）
+    startQueueStatusUpdater() {
+        // 移除频繁的队列更新以避免闪烁
+        // 队列状态将只在进程监控时更新（每3秒）
+    }
+
+    // 更新队列等待时间显示（已禁用）
+    updateQueueWaitTimes() {
+        // 移除此方法以避免闪烁
     }
 
     // 停止所有定时器
@@ -890,6 +951,10 @@ class AutoMihoyoApp {
         if (this.batchTaskMonitorInterval) {
             clearInterval(this.batchTaskMonitorInterval);
             this.batchTaskMonitorInterval = null;
+        }
+        if (this.dashboardUpdateTimeout) {
+            clearTimeout(this.dashboardUpdateTimeout);
+            this.dashboardUpdateTimeout = null;
         }
     }
 
@@ -934,12 +999,19 @@ class AutoMihoyoApp {
     }
     
     updateDashboard() {
-        this.updateStatusCards();
-        this.updateRealTimeProcesses();
-        this.updateRecentActivity();
-        this.updateSignInDetails();
-        this.updateRealTimeLogs(); // 新增：更新实时日志显示
-        this.updateQueueStatus(); // 新增：更新队列状态
+        // 防抖机制：如果频繁调用，延迟执行
+        if (this.dashboardUpdateTimeout) {
+            clearTimeout(this.dashboardUpdateTimeout);
+        }
+        
+        this.dashboardUpdateTimeout = setTimeout(() => {
+            this.updateStatusCards();
+            this.updateRealTimeProcesses();
+            this.updateRecentActivity();
+            this.updateSignInDetails();
+            this.updateRealTimeLogs(); // 新增：更新实时日志显示
+            this.updateQueueStatus(); // 新增：更新队列状态
+        }, 200); // 200ms 防抖延迟
     }
     
     updateStatusCards() {
@@ -1049,6 +1121,22 @@ class AutoMihoyoApp {
             
             const { currentTask, queueTasks, isExecutingTask, queueLength, completedTasks, totalTasks } = status;
             
+            // 生成状态摘要用于比较，避免不必要的重新渲染
+            const statusHash = JSON.stringify({
+                currentTaskName: currentTask?.gameName,
+                currentTaskRunTime: currentTask?.runTime ? Math.floor(currentTask.runTime / 10) : null, // 10秒精度
+                isExecutingTask,
+                queueLength,
+                totalTasks,
+                completedCount: completedTasks ? completedTasks.length : 0
+            });
+            
+            // 如果状态没有显著变化，跳过重新渲染
+            if (this.lastQueueStatusHash === statusHash) {
+                return;
+            }
+            this.lastQueueStatusHash = statusHash;
+            
             let queueHtml = '';
             
             // 显示任务进度总览
@@ -1074,7 +1162,6 @@ class AutoMihoyoApp {
                 // 显示当前执行任务
                 const gameName = currentTask.gameName || currentTask.gameKey;
                 const runTime = currentTask.runTime ? this.formatDuration(currentTask.runTime * 1000) : '启动中';
-                const estimatedTotal = currentTask.estimatedDuration ? this.formatDuration(currentTask.estimatedDuration * 1000) : '未知';
                 
                 // 根据任务类型确定显示的任务类型和CSS类
                 let taskType = '游戏任务';
@@ -1106,7 +1193,6 @@ class AutoMihoyoApp {
                         <div class="task-name">${gameName}</div>
                         <div class="task-timing">
                             <div class="task-runtime">已运行: ${runTime}</div>
-                            <div class="task-estimated">预计时长: ${estimatedTotal}</div>
                         </div>
                         ${currentTask.processName && currentTask.processName !== '阻塞运行' ? 
                             `<div class="task-process">监控进程: ${currentTask.processName}</div>` : 
@@ -1133,12 +1219,6 @@ class AutoMihoyoApp {
                 
                 queueTasks.slice(0, 4).forEach((task, index) => {
                     const position = index + 1;
-                    const waitSeconds = cumulativeWaitTime;
-                    const estimatedDuration = task.estimatedDuration || 300; // 默认5分钟
-                    
-                    // 使用精确等待时间计算
-                    const accurateWaitTime = this.calculateAccurateWaitTime(currentTask, position, estimatedDuration);
-                    const waitDisplay = this.formatWaitTime(accurateWaitTime);
                     
                     // 计算任务类型
                     let taskTypeIcon = '🎮';
@@ -1161,15 +1241,11 @@ class AutoMihoyoApp {
                                     ${task.isBlockingTask ? '<span class="task-badge blocking">阻塞</span>' : ''}
                                 </div>
                                 <div class="queue-timing">
-                                    <span class="queue-wait-time">⏳ 还需等待 ${waitDisplay}</span>
-                                    <span class="queue-estimate">预计${Math.ceil(estimatedDuration / 60)}分钟</span>
+                                    <span class="queue-status">⏳ 等待中</span>
                                 </div>
                             </div>
                         </div>
                     `;
-                    
-                    // 累加下一个任务的等待时间
-                    cumulativeWaitTime += estimatedDuration;
                 });
                 
                 if (queueLength > 4) {
@@ -1283,40 +1359,6 @@ class AutoMihoyoApp {
             const days = Math.floor(diffMins / 1440);
             return `${days}天前`;
         }
-    }
-
-    // 格式化等待时间显示
-    formatWaitTime(seconds) {
-        if (seconds < 60) {
-            return `${Math.ceil(seconds)}秒`;
-        } else if (seconds < 3600) {
-            const minutes = Math.ceil(seconds / 60);
-            return `${minutes}分钟`;
-        } else {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.ceil((seconds % 3600) / 60);
-            if (minutes === 0) {
-                return `${hours}小时`;
-            }
-            return `${hours}小时${minutes}分钟`;
-        }
-    }
-
-    // 计算更精确的等待时间
-    calculateAccurateWaitTime(currentTask, queuePosition, averageTaskDuration = 300) {
-        let baseWaitTime = 0;
-        
-        // 如果有当前任务，计算其剩余时间
-        if (currentTask) {
-            const elapsed = currentTask.runTime || 0;
-            const estimated = currentTask.estimatedDuration || averageTaskDuration;
-            baseWaitTime = Math.max(0, estimated - elapsed);
-        }
-        
-        // 计算前面任务的等待时间
-        const previousTasksTime = (queuePosition - 1) * averageTaskDuration;
-        
-        return baseWaitTime + previousTasksTime;
     }
 
     async quickStartGame(gameKey) {

@@ -790,3 +790,56 @@
     background: linear-gradient(45deg, #3498db, #2980b9);
     color: white;
 }
+
+/* 运行按钮特殊状态样式 */
+#runAllBtn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    min-width: 120px; /* 固定最小宽度，避免文字变化时的抖动 */
+}
+
+#runAllBtn:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+#runAllBtn:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 为不同状态添加不同的背景色 */
+#runAllBtn[data-state="starting"] {
+    background: linear-gradient(45deg, #f39c12, #e67e22);
+    animation: pulse 1.5s infinite;
+}
+
+#runAllBtn[data-state="executing"] {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    animation: pulse 2s infinite;
+}
+
+#runAllBtn[data-state="completed"] {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    animation: success-pulse 0.6s ease-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes success-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 状态变化时的过渡效果 */
+#runAllBtn {
+    transition: background 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
