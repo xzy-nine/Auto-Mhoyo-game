@@ -187,7 +187,6 @@
 .game-card,
 .status-card,
 .process-item,
-.activity-item,
 .signin-item,
 .setting-item {
     transition: all 0.3s ease;
@@ -202,7 +201,6 @@
 .content-area::-webkit-scrollbar,
 .logs-content::-webkit-scrollbar,
 .process-status-list::-webkit-scrollbar,
-.activity-list::-webkit-scrollbar,
 .signin-details::-webkit-scrollbar {
     width: 8px;
 }
@@ -210,7 +208,6 @@
 .content-area::-webkit-scrollbar-track,
 .logs-content::-webkit-scrollbar-track,
 .process-status-list::-webkit-scrollbar-track,
-.activity-list::-webkit-scrollbar-track,
 .signin-details::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
@@ -219,7 +216,6 @@
 .content-area::-webkit-scrollbar-thumb,
 .logs-content::-webkit-scrollbar-thumb,
 .process-status-list::-webkit-scrollbar-thumb,
-.activity-list::-webkit-scrollbar-thumb,
 .signin-details::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 4px;
@@ -228,7 +224,6 @@
 .content-area::-webkit-scrollbar-thumb:hover,
 .logs-content::-webkit-scrollbar-thumb:hover,
 .process-status-list::-webkit-scrollbar-thumb:hover,
-.activity-list::-webkit-scrollbar-thumb:hover,
 .signin-details::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
 }

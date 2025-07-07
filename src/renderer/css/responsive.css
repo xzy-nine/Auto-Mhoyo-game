@@ -169,18 +169,6 @@
         height: 250px;
         font-size: 0.8rem;
     }
-    
-    /* 调整活动项 */
-    .activity-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.25rem;
-        text-align: center;
-    }
-    
-    .activity-time {
-        min-width: auto;
-    }
 }
 
 /* 超小屏幕 */

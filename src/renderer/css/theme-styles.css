@@ -289,27 +289,6 @@ body.dark-theme {
     color: var(--text-secondary);
 }
 
-.dark-theme .recent-activity {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-}
-
-.dark-theme .recent-activity h3 {
-    color: var(--text-primary);
-}
-
-.dark-theme .activity-item {
-    border-bottom: 1px solid var(--border-light);
-}
-
-.dark-theme .activity-item span {
-    color: var(--text-secondary);
-}
-
-.dark-theme .activity-time {
-    color: var(--text-tertiary);
-}
-
 .dark-theme .app-footer {
     background: var(--glass-bg);
     border-top: 1px solid var(--glass-border);
@@ -389,7 +368,6 @@ body {
 .setting-group,
 .log-viewer,
 .dashboard-stats,
-.recent-activity,
 .app-footer,
 .notification {
     transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;

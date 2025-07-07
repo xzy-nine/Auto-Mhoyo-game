@@ -158,7 +158,7 @@ class RewardParser {
     /**
      * 从签到详情和活动记录中解析米游币数量
      * @param {Object} signInDetails - 签到详情对象
-     * @param {Array} recentActivity - 最近活动记录
+     * @param {Array} recentActivity - 最近活动记录（可选，为了兼容性保留参数）
      * @param {Object} realtimeLogs - 实时日志
      * @returns {string} 米游币数量字符串
      */
@@ -170,15 +170,17 @@ class RewardParser {
             }
         }
         
-        // 从最近的活动记录中解析米游币数量
-        const coinActivity = recentActivity.find(activity => 
-            activity.message.includes('米游币') && 
-            (activity.message.includes('已经获得') || activity.message.includes('目前有'))
-        );
-        
-        if (coinActivity) {
-            const match = coinActivity.message.match(/(?:已经获得|目前有)\s*(\d+)\s*个米游币/);
-            return match ? match[1] : '-';
+        // 从最近的活动记录中解析米游币数量（如果提供的话）
+        if (recentActivity && recentActivity.length > 0) {
+            const coinActivity = recentActivity.find(activity => 
+                activity.message.includes('米游币') && 
+                (activity.message.includes('已经获得') || activity.message.includes('目前有'))
+            );
+            
+            if (coinActivity) {
+                const match = coinActivity.message.match(/(?:已经获得|目前有)\s*(\d+)\s*个米游币/);
+                return match ? match[1] : '-';
+            }
         }
         
         // 从实时日志中解析
