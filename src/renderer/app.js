@@ -247,9 +247,16 @@ class AutoMihoyoApp {
                 
                 <div class="monitoring-section">
                     <h4>🔍 进程监控设置</h4>
+                    <div class="monitoring-description">
+                        <p class="description-text">
+                            <strong>进程监控模式：</strong>启用后将监控指定进程的生命周期，而非启动程序本身的执行时间。<br>
+                            <strong>阻塞运行模式：</strong>关闭时使用阻塞运行，以启动的脚本或应用结束作为计时标准。
+                        </p>
+                    </div>
                     <div class="setting-item">
                         <div class="setting-label">
                             <span>启用进程监控</span>
+                            <small>切换监控模式：开启=监控指定进程，关闭=阻塞运行</small>
                         </div>
                         <label class="modern-toggle">
                             <input type="checkbox" ${game.monitoring.enabled ? 'checked' : ''} 

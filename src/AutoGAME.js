@@ -240,6 +240,16 @@ class AutoGAME {
       await this.writeLog(logFile, `参数: ${(game.arguments || []).join(' ')}`);
       await this.writeLog(logFile, `应用目录: ${this.appDir}`);
       await this.writeLog(logFile, `进程平台: ${process.platform}`);
+      
+      // 检查监控模式并记录
+      const shouldMonitor = game.monitoring && game.monitoring.enabled &&
+        (game.monitoring.processName || game.monitoring.customProcessName);
+      if (shouldMonitor) {
+        const processName = game.monitoring.customProcessName || game.monitoring.processName;
+        await this.writeLog(logFile, `监控模式: 启用 - 将监控进程 "${processName}"`);
+      } else {
+        await this.writeLog(logFile, `监控模式: 关闭 - 使用阻塞运行，以程序退出为准`);
+      }
 
       return new Promise((resolve, reject) => {
         const workingDir = game.workingDir || path.dirname(game.path);
@@ -483,53 +493,95 @@ class AutoGAME {
                            (game.path && (game.path.includes('sign') || game.path.includes('签到')));
           
           if (isSignTask) {
-            // 签到类任务：严格根据退出码判断成功与否，不依赖日志输出
-            const isSuccess = (code === 0);
-            await this.writeLog(logFile, isSuccess ? '签到任务执行完成' : `签到任务执行失败，退出码: ${code}`);
-            
-            if (isSuccess) {
-              // 合并stdout和stderr输出，因为有些签到工具将信息输出到stderr
-              const fullOutput = (output + '\n' + errorOutput).trim();
+            // 签到类任务：检查是否配置了进程监控
+            const shouldMonitor = game.monitoring && game.monitoring.enabled &&
+              (game.monitoring.processName || game.monitoring.customProcessName);
               
-              // 立即解析签到奖励信息并显示到实时区域
-              if (fullOutput) {
-                this.parseAndDisplayRewards(fullOutput, game.name);
+            if (shouldMonitor) {
+              // 配置了进程监控的签到任务：监控指定进程
+              const processName = game.monitoring.customProcessName || game.monitoring.processName;
+              await this.writeLog(logFile, `签到任务配置了进程监控，忽略脚本退出码(${code})，开始监控进程: ${processName}`);
+              
+              try {
+                await this.processMonitor.waitForProcessCompletion(processName, gameKey, logFile);
+                await this.writeLog(logFile, `监控进程 ${processName} 已完成`);
+                
+                // 解析奖励信息
+                const fullOutput = (output + '\n' + errorOutput).trim();
+                if (fullOutput) {
+                  this.parseAndDisplayRewards(fullOutput, game.name);
+                }
+                
+                resolve({
+                  success: true,
+                  gameKey,
+                  gameName: game.name,
+                  duration: Date.now() - startTime,
+                  output: fullOutput || '签到执行完成',
+                  logFile,
+                  exitCode: code
+                });
+              } catch (monitorError) {
+                await this.writeLog(logFile, `监控进程失败: ${monitorError.message}`);
+                reject(new Error(`监控进程失败: ${monitorError.message}`));
               }
-              
-              resolve({
-                success: true,
-                gameKey,
-                gameName: game.name,
-                duration,
-                output: fullOutput || '签到执行完成',
-                logFile,
-                exitCode: code
-              });
             } else {
-              const errorMsg = `${game.name} 签到失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
-              await this.writeLog(logFile, `失败: ${errorMsg}`);
-              reject(new Error(errorMsg));
+              // 没有配置进程监控的签到任务：阻塞运行，根据退出码判断
+              const isSuccess = (code === 0);
+              await this.writeLog(logFile, isSuccess ? '签到脚本阻塞运行完成' : `签到脚本阻塞运行失败，退出码: ${code}`);
+              
+              if (isSuccess) {
+                // 合并stdout和stderr输出，因为有些签到工具将信息输出到stderr
+                const fullOutput = (output + '\n' + errorOutput).trim();
+                
+                // 立即解析签到奖励信息并显示到实时区域
+                if (fullOutput) {
+                  this.parseAndDisplayRewards(fullOutput, game.name);
+                }
+                
+                // 记录执行时长统计
+                this.processMonitor.totalAccumulatedRuntime += duration;
+                this.processMonitor.completedProcesses.set(gameKey, {
+                  name: game.name,
+                  runTime: duration,
+                  endTime: endTime,
+                  isBlockingTask: true,
+                  isSignTask: true
+                });
+                
+                this.log(`签到脚本阻塞运行时长统计: +${this.processMonitor.formatDuration(duration / 1000)}, 累计总时长: ${this.processMonitor.formatDuration(this.processMonitor.totalAccumulatedRuntime / 1000)}`);
+                
+                resolve({
+                  success: true,
+                  gameKey,
+                  gameName: game.name,
+                  duration,
+                  output: fullOutput || '签到执行完成',
+                  logFile,
+                  exitCode: code
+                });
+              } else {
+                const errorMsg = `${game.name} 签到失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
+                await this.writeLog(logFile, `失败: ${errorMsg}`);
+                reject(new Error(errorMsg));
+              }
             }
             return;
           }
 
-          // 检查是否需要监控进程来判断任务完成
+          // 检查是否配置了进程监控
           const shouldMonitor = game.monitoring && game.monitoring.enabled &&
             (game.monitoring.processName || game.monitoring.customProcessName);
           
           // 判断任务是否完成的逻辑
           let isSuccess = false;
           
-          if (runAsScript || ext === '.py' || ext === '.js') {
-            // 脚本类程序：严格根据退出码判断，不依赖输出内容
-            isSuccess = (code === 0);
-            await this.writeLog(logFile, `脚本执行${isSuccess ? '成功' : '失败'}，退出码: ${code}`);
-          } else if (shouldMonitor) {
-            // 可执行文件且配置了监控进程：不依赖启动程序的退出码，直接监控目标进程
+          if (shouldMonitor) {
+            // 配置了进程监控：忽略启动程序的退出状态，直接监控目标进程
             const processName = game.monitoring.customProcessName || game.monitoring.processName;
-            await this.writeLog(logFile, `程序启动完成，开始监控进程: ${processName}`);
+            await this.writeLog(logFile, `配置了进程监控，忽略启动程序退出码(${code})，开始监控进程: ${processName}`);
             
-            // 对于需要监控的应用程序，直接开始监控目标进程，不依赖启动程序的退出码
+            // 启动程序可能已经退出，但我们只关心监控的目标进程
             try {
               await this.processMonitor.waitForProcessCompletion(processName, gameKey, logFile);
               await this.writeLog(logFile, `监控进程 ${processName} 已完成`);
@@ -540,9 +592,15 @@ class AutoGAME {
               return;
             }
           } else {
-            // 可执行文件但没有配置监控进程：严格根据退出码判断
+            // 没有配置进程监控：阻塞运行，以启动的脚本或应用结束作为计时标准
             isSuccess = (code === 0);
-            await this.writeLog(logFile, `可执行文件${isSuccess ? '成功' : '失败'}，退出码: ${code}`);
+            
+            if (runAsScript || ext === '.py' || ext === '.js') {
+              await this.writeLog(logFile, `脚本阻塞运行完成，退出码: ${code}`);
+            } else {
+              await this.writeLog(logFile, `应用阻塞运行完成，退出码: ${code}`);
+            }
+            
             if (!isSuccess && errorOutput.trim()) {
               await this.writeLog(logFile, `错误详情: ${errorOutput.trim()}`);
             }
@@ -552,6 +610,20 @@ class AutoGAME {
             // 解析奖励信息（主要针对签到脚本）
             if (output && (gameKey === 'mihoyoBBSTools' || gameKey.includes('sign'))) {
               this.parseAndDisplayRewards(output, game.name);
+            }
+            
+            // 对于没有配置进程监控的任务，记录执行时长统计
+            if (!shouldMonitor) {
+              this.processMonitor.totalAccumulatedRuntime += duration;
+              this.processMonitor.completedProcesses.set(gameKey, {
+                name: game.name,
+                runTime: duration,
+                endTime: endTime,
+                isBlockingTask: true // 标记为阻塞运行的任务
+              });
+              
+              const taskType = (runAsScript || ext === '.py' || ext === '.js') ? '脚本' : '应用';
+              this.log(`${taskType}阻塞运行时长统计: +${this.processMonitor.formatDuration(duration / 1000)}, 累计总时长: ${this.processMonitor.formatDuration(this.processMonitor.totalAccumulatedRuntime / 1000)}`);
             }
             
             resolve({

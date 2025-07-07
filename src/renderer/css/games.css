@@ -136,6 +136,26 @@ input:checked + .toggle-slider:before {
     color: var(--text-dark);
 }
 
+.monitoring-description {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border-left: 3px solid var(--btn-primary-bg);
+}
+
+.monitoring-description .description-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.monitoring-description .description-text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
 .game-actions {
     margin-top: 1rem;
     display: flex;
