@@ -531,7 +531,7 @@ class AutoGAME {
             
             // 对于需要监控的应用程序，直接开始监控目标进程，不依赖启动程序的退出码
             try {
-              await this.waitForProcessCompletion(processName, gameKey, logFile);
+              await this.processMonitor.waitForProcessCompletion(processName, gameKey, logFile);
               await this.writeLog(logFile, `监控进程 ${processName} 已完成`);
               isSuccess = true;
             } catch (monitorError) {
@@ -722,20 +722,8 @@ class AutoGAME {
 
   startProcessMonitoring() {
     if (this.processMonitor) {
-      clearInterval(this.processMonitor);
+      this.processMonitor.startProcessMonitoring();
     }
-
-    // 使用配置中的检查间隔，默认5秒
-    const checkInterval = this.config?.processMonitoring?.checkInterval || 5000;
-    console.log(`进程监控已启动，检查间隔: ${checkInterval}ms`);
-
-    this.processMonitor = setInterval(async () => {
-      try {
-        await this.updateProcessStatus();
-      } catch (error) {
-        console.error('Process monitoring error:', error);
-      }
-    }, checkInterval);
   }
 
   stopProcessMonitoring() {
