@@ -125,7 +125,6 @@ class AutoMihoyoApp {
         document.getElementById('quickStartGenshin').addEventListener('click', () => this.quickStartGame('betterGenshinImpact'));
         document.getElementById('quickStartStarRail').addEventListener('click', () => this.quickStartGame('march7thAssistant'));
         document.getElementById('quickStartZenless').addEventListener('click', () => this.quickStartGame('zenlessZoneZero'));
-        document.getElementById('quickStopAll').addEventListener('click', () => this.stopAllProcesses());
     }
 
     setupNavigation() {
@@ -382,6 +381,9 @@ class AutoMihoyoApp {
                 throw new Error(result.error);
             }
             
+            // 同步并累加到总运行时长
+            this.totalScriptRuntime += result.duration;
+
             // 对于签到类任务，不立即移除进程状态，而是等待真正完成
             if (gameKey === 'mihoyoBBSTools') {
                 // 签到类任务保持进程状态，等待实时日志确认完成
@@ -424,6 +426,10 @@ class AutoMihoyoApp {
         const game = this.config.games[gameKey];
         
         return new Promise((resolve, reject) => {
+            // 记录脚本开始时间用于累计总运行时长
+            if (!this.scriptStartTimes[gameKey]) {
+                this.scriptStartTimes[gameKey] = Date.now();
+            }
             // 设置状态更新间隔
             const statusUpdateInterval = setInterval(() => {
                 // 对于签到类任务，特殊处理
@@ -1504,7 +1510,7 @@ class AutoMihoyoApp {
                         console.log('解析到总米游币:', mihoyoCoins, '原文:', trimmedLine);
                     } else {
                         // 匹配今日获得数量
-                        const coinMatch = trimmedLine.match(/(?:已经获得|今天已经获得|获得|今天获得)\s*(\d+)\s*个?米游币/);
+                        const coinMatch = trimmedLine.match(/(?:已经获得|今天已经签到过了|获得|今天获得)\s*(\d+)\s*个?米游币/);
                         if (coinMatch) {
                             const todayCoins = coinMatch[1];
                             mihoyoCoins = mihoyoCoins ? `${mihoyoCoins} (今日+${todayCoins})` : `今日 ${todayCoins}`;
@@ -1826,7 +1832,7 @@ class AutoMihoyoApp {
                 this.updateSignInDetails();
                 console.log('实时解析到总米游币:', this.signInDetails[gameKey].coins);
             } else {
-                const coinMatch = logEntry.match(/(?:已经获得|今天已经获得|获得|今天获得)\s*(\d+)\s*个?米游币/);
+                const coinMatch = logEntry.match(/(?:已经获得|今天已经签到过了|获得|今天获得)\s*(\d+)\s*个?米游币/);
                 if (coinMatch) {
                     const todayCoins = coinMatch[1];
                     const currentCoins = this.signInDetails[gameKey].coins;
@@ -1881,8 +1887,8 @@ class AutoMihoyoApp {
                 </div>
                 <div class="signin-result-sidebar">
                     <div class="signin-status-sidebar ${details.status}">${details.statusText}</div>
-                    ${details.reward ? `<div class="signin-reward-sidebar">🎁 ${details.reward}</div>` : ''}
-                    ${details.coins ? `<div class="signin-reward-sidebar">🪙 ${details.coins}</div>` : ''}
+                    ${details.reward ? details.reward.split(',').map(item => `<div class="signin-reward-sidebar">🎁 ${item.trim()}</div>`).join('') : ''}
+                    ${details.coins ? `<div class="signin-reward-sidebar">🪙 总计 ${details.coins}</div>` : ''}
                 </div>
             </div>
         `).join('');
