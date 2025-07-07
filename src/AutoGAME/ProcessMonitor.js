@@ -524,63 +524,27 @@ class ProcessMonitor {
   }
 
   /**
-   * 检查OCR任务冲突
-   */
-  isOCRTaskRunning() {
-    // 检查进程监控状态
-    if (this.currentMonitoringProcess && this.isMonitoring) {
-      return {
-        isRunning: true,
-        processName: this.currentMonitoringProcess,
-        runTime: this.currentMonitoringStartTime ? 
-          Math.floor((Date.now() - this.currentMonitoringStartTime) / 1000) : 0
-      };
-    }
-
-    // 检查正在运行的OCR相关进程
-    for (const [gameKey, processInfo] of this.runningProcesses.entries()) {
-      const ocrProcessNames = [
-        'OneDragon.exe',           // 绝区零一条龙
-        'March7thAssistant.exe',   // 三月七助手
-        'BetterGI.exe',           // 原神BetterGI
-        'python.exe'               // 可能的签到脚本
-      ];
-      
-      if (ocrProcessNames.some(name => processInfo.processName.includes(name))) {
-        return {
-          isRunning: true,
-          gameKey,
-          processName: processInfo.processName,
-          runTime: Math.floor((Date.now() - processInfo.startTime) / 1000)
-        };
-      }
-    }
-    
-    return { isRunning: false };
-  }
-
-  /**
    * 智能等待时间计算
    */
   calculateSmartWaitTime(gameKey) {
     const config = this.autoGame.config;
     if (!config || !config.games || !config.games[gameKey]) {
-      return 60000; // 默认1分钟
+      return 30000; // 默认30秒
     }
     
     const game = config.games[gameKey];
-    const baseWaitTime = game.waitTime || 60000;
+    const baseWaitTime = game.waitTime || 30000;
     
-    // 根据游戏类型调整等待时间，匹配实际执行时间
+    // 根据游戏类型调整等待时间，针对批量执行场景优化
     const gameTypeWaitTime = {
-      'mihoyoBBSTools': 120000,      // 签到脚本：2分钟（1分钟签到+1分钟缓冲）
-      'march7thAssistant': 660000,   // 三月七助手：11分钟（1分钟签到+10分钟自动化）
-      'zenlessZoneZero': 660000,     // 绝区零一条龙：11分钟
-      'betterGenshinImpact': 660000  // 原神BetterGI：11分钟
+      'mihoyoBBSTools': 30000,       // 签到脚本：30秒（签到完成后快速进入下一个任务）
+      'march7thAssistant': 30000,   // 三月七助手：30秒（启动游戏需要时间）
+      'zenlessZoneZero': 30000,     // 绝区零一条龙：30秒
+      'betterGenshinImpact': 30000  // 原神BetterGI：30秒
     };
     
-    const smartWaitTime = gameTypeWaitTime[gameKey] || baseWaitTime;
-    this.autoGame.log(`${game.name} 智能等待时间: ${Math.floor(smartWaitTime/60000)}分钟`);
+    const smartWaitTime = gameTypeWaitTime[gameKey] || Math.min(baseWaitTime, 60000); // 最多1分钟
+    this.autoGame.log(`${game.name} 智能等待时间: ${Math.floor(smartWaitTime/1000)}秒`);
     return smartWaitTime;
   }
 
@@ -611,23 +575,10 @@ class ProcessMonitor {
   }
 
   /**
-   * 改进的队列处理，增强冲突检测和状态提示
+   * 改进的队列处理
    */
   async processQueue() {
     if (this.isExecutingTask || this.taskQueue.length === 0) {
-      return;
-    }
-
-    // 检查OCR任务冲突，如果有冲突则延迟处理
-    const ocrStatus = this.isOCRTaskRunning();
-    if (ocrStatus.isRunning) {
-      const estimatedWaitTime = Math.max(30000, this.calculateSmartWaitTime(ocrStatus.gameKey || 'unknown'));
-      this.autoGame.log(`⏳ 检测到任务正在运行 (${ocrStatus.processName})，队列等待中...`);
-      this.autoGame.log(`📋 当前队列: ${this.taskQueue.length} 个任务等待执行`);
-      this.autoGame.log(`⏰ 预计等待时间: ${Math.floor(estimatedWaitTime/60000)} 分钟后重试`);
-      
-      // 延迟重试，避免冲突
-      setTimeout(() => this.processQueue(), Math.min(estimatedWaitTime, 300000)); // 最多等待5分钟
       return;
     }
 
@@ -691,7 +642,17 @@ class ProcessMonitor {
       // 只有当队列中还有任务时，才继续处理队列
       if (this.taskQueue.length > 0) {
         const nextTask = this.taskQueue[0];
-        const waitTime = Math.max(3000, this.calculateSmartWaitTime(nextTask.gameKey) / 10); // 缩短等待时间
+        const nextGameConfig = this.autoGame.config?.games?.[nextTask.gameKey];
+        
+        // 针对不同任务类型设置不同的等待时间
+        let waitTime = 30000; // 默认30秒
+        if (task.gameKey === 'mihoyoBBSTools') {
+          // 签到任务完成后，快速进入下一个任务
+          waitTime = 30000; // 30秒
+        } else {
+          // 其他任务使用较短的等待时间，避免过长的间隔
+          waitTime = Math.min(10000, this.calculateSmartWaitTime(nextTask.gameKey) / 6); // 缩短等待时间到1/6
+        }
         
         this.autoGame.log(`⏸️  任务间隔等待 ${Math.floor(waitTime/1000)} 秒后继续...`);
         setTimeout(() => this.processQueue(), waitTime);
@@ -885,15 +846,6 @@ class ProcessMonitor {
    */
   getSmartRecommendations() {
     const recommendations = [];
-    const ocrStatus = this.isOCRTaskRunning();
-    
-    if (ocrStatus.isRunning && this.taskQueue.length > 0) {
-      const estimatedWaitTime = this.calculateSmartWaitTime(ocrStatus.gameKey || 'unknown');
-      recommendations.push({
-        type: 'warning',
-        message: `有OCR任务正在运行 (${ocrStatus.processName})，建议等待约 ${Math.floor(estimatedWaitTime/60000)} 分钟后再执行其他任务`
-      });
-    }
     
     if (this.taskQueue.length > 3) {
       const totalTime = this.calculateEstimatedTime();

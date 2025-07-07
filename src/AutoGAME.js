@@ -1199,13 +1199,6 @@ class AutoGAME {
   }
 
   /**
-   * 检查OCR任务冲突 - 委托给 ProcessMonitor
-   */
-  isOCRTaskRunning() {
-    return this.processMonitor.isOCRTaskRunning();
-  }
-
-  /**
    * 智能等待时间计算 - 委托给 ProcessMonitor
    */
   calculateSmartWaitTime(gameKey) {
@@ -1213,19 +1206,12 @@ class AutoGAME {
   }
 
   /**
-   * 执行单个游戏任务（状态检查）
+   * 执行单个游戏任务
    */
   async executeGameTask(gameKey) {
     const game = this.config.games[gameKey];
     if (!game || !game.enabled) {
       throw new Error(`游戏 ${gameKey} 未启用或不存在`);
-    }
-
-    // 检查OCR任务冲突
-    const ocrStatus = this.isOCRTaskRunning();
-    if (ocrStatus.isRunning) {
-      const waitTime = this.calculateSmartWaitTime(gameKey);
-      throw new Error(`检测到OCR任务正在运行 (${ocrStatus.processName}，已运行${ocrStatus.runTime}秒)，预计需等待${Math.floor(waitTime/60000)}分钟`);
     }
 
     return this.runSingleGame(gameKey);
@@ -1252,27 +1238,31 @@ class AutoGAME {
       }
 
       this.log(`开始批量执行 ${enabledGames.length} 个游戏任务`);
+      
+      // 先将所有任务添加到队列中，不等待执行结果
+      const taskPromises = [];
+      for (const [gameKey, game] of enabledGames) {
+        this.log(`添加任务到队列: ${game.name} (${gameKey})`);
+        taskPromises.push(this.addToQueue(gameKey, 0));
+      }
+      
+      // 等待所有任务完成
       const results = [];
       const errors = [];
-
-      // 将所有任务加入队列（优先级为0，按顺序执行）
-      for (const [gameKey, game] of enabledGames) {
+      
+      for (let i = 0; i < taskPromises.length; i++) {
+        const [gameKey, game] = enabledGames[i];
         try {
-          const result = await this.addToQueue(gameKey, 0);
+          const result = await taskPromises[i];
           results.push(result);
-          
-          // 使用智能等待时间
-          const smartWaitTime = this.calculateSmartWaitTime(gameKey);
-          if (smartWaitTime > 0) {
-            this.log(`等待 ${Math.floor(smartWaitTime/60000)} 分钟后执行下一个任务...`);
-            await this.sleep(smartWaitTime);
-          }
+          this.log(`任务完成: ${game.name} (${gameKey})`);
         } catch (error) {
           errors.push({
             gameKey,
             gameName: game.name || gameKey,
             error: error.message
           });
+          this.log(`任务失败: ${game.name} (${gameKey}) - ${error.message}`);
         }
       }
 
