@@ -12,6 +12,9 @@ class AutoMihoyoApp {
         this.totalScriptRuntime = 0; // 总脚本运行时长（毫秒）
         this.scriptStartTimes = {}; // 脚本开始时间记录
         
+        // 初始化奖励解析器
+        this.rewardParser = new RewardParser();
+        
         this.initializeApp();
     }
 
@@ -409,7 +412,7 @@ class AutoMihoyoApp {
             )) {
                 console.log('准备解析签到奖励，输出长度:', result.output.length);
                 console.log('输出前500字符:', result.output.substring(0, 500));
-                this.parseSignInRewards(result.output, game.name);
+                this.handleSignInRewardParsing(result.output, game.name, gameKey);
             }
             
         } catch (error) {
@@ -1092,37 +1095,12 @@ class AutoMihoyoApp {
     }
     
     parseMihoyoCoins() {
-        // 从签到详情中获取米游币数量
-        for (const [gameKey, details] of Object.entries(this.signInDetails)) {
-            if (details.coins) {
-                return details.coins;
-            }
-        }
-        
-        // 从最近的活动记录中解析米游币数量
-        const coinActivity = this.recentActivity.find(activity => 
-            activity.message.includes('米游币') && 
-            (activity.message.includes('已经获得') || activity.message.includes('目前有'))
+        // 使用 RewardParser 解析米游币
+        return this.rewardParser.parseMihoyoCoins(
+            this.signInDetails, 
+            this.recentActivity, 
+            this.realtimeLogs
         );
-        
-        if (coinActivity) {
-            const match = coinActivity.message.match(/(?:已经获得|目前有)\s*(\d+)\s*个米游币/);
-            return match ? match[1] : '-';
-        }
-        
-        // 从实时日志中解析
-        if (this.realtimeLogs) {
-            for (const logs of Object.values(this.realtimeLogs)) {
-                for (const log of logs.slice(-20)) { // 检查最近20条日志
-                    const match = log.match(/(?:已经获得|目前有)\s*(\d+)\s*个米游币/);
-                    if (match) {
-                        return match[1];
-                    }
-                }
-            }
-        }
-        
-        return '-';
     }
     
     // 获取签到任务的原始开始时间，防止时间跳变
@@ -1368,199 +1346,37 @@ class AutoMihoyoApp {
         }, 500);
     }
 
-    parseSignInRewards(output, gameName) {
+    handleSignInRewardParsing(output, gameName, gameKey) {
         try {
-            if (!output || typeof output !== 'string') {
-                console.log('解析签到奖励: 输出为空或格式错误');
-                return;
-            }
-            
-            // 防重复解析 - 基于输出内容和游戏名称确定游戏key
-            const gameKey = Object.keys(this.config.games).find(key => 
-                this.config.games[key].name === gameName
-            ) || 'mihoyoBBSTools'; // 默认为米游社工具
-            
-            console.log('检测到游戏:', gameName, '对应Key:', gameKey);
-            
             // 如果已经解析过这个游戏的签到结果且输出内容没有变化，跳过
-            if (gameKey && this.signInDetails[gameKey] && this.signInDetails[gameKey].lastOutput === output.substring(0, 1000)) {
+            if (gameKey && this.signInDetails[gameKey] && 
+                this.signInDetails[gameKey].lastOutput === output.substring(0, 1000)) {
                 console.log('已解析过相同输出的签到结果，跳过重复解析:', gameKey);
                 return;
             }
+
+            // 使用 RewardParser 解析奖励
+            const parsedResult = this.rewardParser.parseSignInRewards(output, gameName, this.config);
             
-            const lines = output.split('\n');
-            let signinSuccess = false;
-            let signinReward = '';
-            let mihoyoCoins = '';
-            let rewardCount = 0; // 统计找到的奖励数量
-            
-            console.log('开始解析签到奖励，总行数:', lines.length);
-            
-            // 解析每一行日志
-            for (const line of lines) {
-                const trimmedLine = line.trim();
-                
-                // 检查签到成功状态 - 根据实际日志优化匹配
-                if (trimmedLine.includes('执行完成，退出码: 0') ||
-                    trimmedLine.includes('推送结果：ok') ||
-                    trimmedLine.includes('推送完毕') ||
-                    trimmedLine.includes('今天已经签到过了~') ||
-                    trimmedLine.includes('签到任务执行完成') ||
-                    trimmedLine.includes('签到执行完成') ||
-                    trimmedLine.includes('dingrobot - 推送完毕') ||
-                    (trimmedLine.includes('INFO') && trimmedLine.includes('签到工具') && trimmedLine.includes('执行完成'))) {
-                    signinSuccess = true;
-                    console.log('检测到签到成功标志:', trimmedLine);
-                }
-                
-                // 解析奖励信息 - 优先匹配单独奖励行
-                if (trimmedLine.startsWith('今天获得的奖励是') && !trimmedLine.includes('INFO')) {
-                    console.log('找到纯奖励行:', trimmedLine);
-                    // 匹配：今天获得的奖励是「冒险家的经验」x2
-                    const rewardMatch = trimmedLine.match(/今天获得的奖励是[「『]?([^」』\n]+)[」』]?\s*x?(\d+)?/);
-                    if (rewardMatch) {
-                        const newReward = rewardMatch[2] ? `${rewardMatch[1]} x${rewardMatch[2]}` : rewardMatch[1];
-                        if (rewardCount === 0) {
-                            signinReward = newReward;
-                        } else {
-                            signinReward += `, ${newReward}`;
-                        }
-                        rewardCount++;
-                        console.log('解析到奖励:', newReward, '总计:', signinReward, '原文:', trimmedLine);
-                    } else {
-                        console.log('正则匹配失败，尝试简单解析');
-                        // 如果正则失败，尝试简单的字符串提取
-                        const simpleMatch = trimmedLine.match(/今天获得的奖励是(.+)/);
-                        if (simpleMatch) {
-                            const newReward = simpleMatch[1].trim();
-                            if (rewardCount === 0) {
-                                signinReward = newReward;
-                            } else {
-                                signinReward += `, ${newReward}`;
-                            }
-                            rewardCount++;
-                            console.log('简单解析到奖励:', newReward, '总计:', signinReward);
-                        }
-                    }
-                } else if (trimmedLine.includes('今天获得的奖励是')) {
-                    console.log('找到今天奖励行:', trimmedLine);
-                    // 匹配：今天获得的奖励是「冒险家的经验」x2
-                    const rewardMatch = trimmedLine.match(/今天获得的奖励是[「『]?([^」』\n]+)[」』]?\s*x?(\d+)?/);
-                    if (rewardMatch) {
-                        const newReward = rewardMatch[2] ? `${rewardMatch[1]} x${rewardMatch[2]}` : rewardMatch[1];
-                        if (rewardCount === 0) {
-                            signinReward = newReward;
-                        } else {
-                            signinReward += `, ${newReward}`;
-                        }
-                        rewardCount++;
-                        console.log('解析到奖励:', newReward, '总计:', signinReward, '原文:', trimmedLine);
-                    } else {
-                        console.log('正则匹配失败，尝试简单解析');
-                        // 如果正则失败，尝试简单的字符串提取
-                        const simpleMatch = trimmedLine.match(/今天获得的奖励是(.+)/);
-                        if (simpleMatch) {
-                            const newReward = simpleMatch[1].trim();
-                            if (rewardCount === 0) {
-                                signinReward = newReward;
-                            } else {
-                                signinReward += `, ${newReward}`;
-                            }
-                            rewardCount++;
-                            console.log('简单解析到奖励:', newReward, '总计:', signinReward);
-                        }
-                    }
-                } else if (trimmedLine.includes('获得的奖励是')) {
-                    console.log('找到获得奖励行:', trimmedLine);
-                    // 处理没有"今天"前缀的情况
-                    const rewardMatch = trimmedLine.match(/获得的奖励是[「『]?([^」』\n]+)[」』]?\s*x?(\d+)?/);
-                    if (rewardMatch) {
-                        const newReward = rewardMatch[2] ? `${rewardMatch[1]} x${rewardMatch[2]}` : rewardMatch[1];
-                        if (rewardCount === 0) {
-                            signinReward = newReward;
-                        } else {
-                            signinReward += `, ${newReward}`;
-                        }
-                        rewardCount++;
-                        console.log('解析到奖励(无今天前缀):', newReward, '总计:', signinReward, '原文:', trimmedLine);
-                    } else {
-                        console.log('正则匹配失败，尝试简单解析');
-                        // 如果正则失败，尝试简单的字符串提取
-                        const simpleMatch = trimmedLine.match(/获得的奖励是(.+)/);
-                        if (simpleMatch) {
-                            const newReward = simpleMatch[1].trim();
-                            if (rewardCount === 0) {
-                                signinReward = newReward;
-                            } else {
-                                signinReward += `, ${newReward}`;
-                            }
-                            rewardCount++;
-                            console.log('简单解析到奖励:', newReward, '总计:', signinReward);
-                        }
-                    }
-                }
-                
-                // 解析米游币数量 - 增强匹配，包括当前余额
-                if (trimmedLine.includes('米游币')) {
-                    console.log('找到米游币行:', trimmedLine);
-                    // 优先匹配当前总余额
-                    const totalCoinMatch = trimmedLine.match(/目前有\s*(\d+)\s*个?米游币/);
-                    if (totalCoinMatch) {
-                        mihoyoCoins = `总计 ${totalCoinMatch[1]}`;
-                        console.log('解析到总米游币:', mihoyoCoins, '原文:', trimmedLine);
-                    } else {
-                        // 匹配今日获得数量
-                        const coinMatch = trimmedLine.match(/(?:已经获得|今天已经签到过了|获得|今天获得)\s*(\d+)\s*个?米游币/);
-                        if (coinMatch) {
-                            const todayCoins = coinMatch[1];
-                            mihoyoCoins = mihoyoCoins ? `${mihoyoCoins} (今日+${todayCoins})` : `今日 ${todayCoins}`;
-                            console.log('解析到今日米游币:', todayCoins, '当前显示:', mihoyoCoins, '原文:', trimmedLine);
-                        } else {
-                            // 尝试更宽松的匹配
-                            const looseMatch = trimmedLine.match(/(\d+)\s*个?米游币/);
-                            if (looseMatch && !mihoyoCoins) {
-                                mihoyoCoins = looseMatch[1];
-                                console.log('宽松解析到米游币:', mihoyoCoins, '原文:', trimmedLine);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            console.log('签到解析完成:');
-            console.log('- 签到成功:', signinSuccess);
-            console.log('- 奖励:', signinReward);
-            console.log('- 米游币:', mihoyoCoins);
-            console.log('- 游戏名:', gameName);
-            console.log('- 游戏Key:', gameKey);
-            
-            // 更新签到详情，显示在实时区域
-            if (gameKey) {
-                this.signInDetails[gameKey] = {
-                    name: gameName,
-                    icon: this.getGameIcon(gameKey),
-                    status: signinSuccess ? 'success' : 'failed',
-                    statusText: signinSuccess ? '已签到' : '签到失败',
-                    reward: signinReward || undefined,
-                    coins: mihoyoCoins || undefined,
-                    lastOutput: output.substring(0, 1000) // 保存输出的前1000字符用于去重
-                };
+            if (parsedResult && parsedResult.gameKey) {
+                // 更新签到详情
+                this.signInDetails[parsedResult.gameKey] = parsedResult;
                 
                 // 立即更新显示
                 this.updateSignInDetails();
                 
                 // 更新今日签到状态
-                const activityMessage = `${gameName} 签到${signinSuccess ? '成功' : '失败'}${signinReward ? `: ${signinReward}` : ''}${mihoyoCoins ? ` (米游币: ${mihoyoCoins})` : ''}`;
-                this.addActivity(activityMessage, signinSuccess ? 'success' : 'error');
+                const activityMessage = `${gameName} 签到${parsedResult.status === 'success' ? '成功' : '失败'}${parsedResult.reward ? `: ${parsedResult.reward}` : ''}${parsedResult.coins ? ` (米游币: ${parsedResult.coins})` : ''}`;
+                this.addActivity(activityMessage, parsedResult.status === 'success' ? 'success' : 'error');
                 
                 // 显示通知（只显示一次）
-                this.showNotification(activityMessage, signinSuccess ? 'success' : 'error');
+                this.showNotification(activityMessage, parsedResult.status === 'success' ? 'success' : 'error');
                 
                 console.log('签到状态解析完成:', {
                     game: gameName,
-                    success: signinSuccess,
-                    reward: signinReward,
-                    coins: mihoyoCoins
+                    success: parsedResult.status === 'success',
+                    reward: parsedResult.reward,
+                    coins: parsedResult.coins
                 });
             }
             
@@ -1568,16 +1384,6 @@ class AutoMihoyoApp {
             console.error('解析签到奖励失败:', error);
             this.showNotification(`解析签到奖励失败: ${error.message}`, 'error');
         }
-    }
-    
-    getGameIcon(gameKey) {
-        const icons = {
-            'mihoyoBBSTools': '🎮',
-            'march7thAssistant': '🚂',
-            'zenlessZoneZero': '🏙️',
-            'betterGenshinImpact': '⚔️'
-        };
-        return icons[gameKey] || '🎮';
     }
 
     // 添加实时日志收集和显示功能
@@ -1793,55 +1599,21 @@ class AutoMihoyoApp {
     
     // 从实时日志解析签到奖励
     parseSignInRewardsFromRealTimeLog(gameKey, logEntry) {
-        if (!this.signInDetails[gameKey]) {
-            this.signInDetails[gameKey] = {
-                name: this.config.games[gameKey]?.name || '米游社签到工具',
-                icon: '🎮',
-                status: 'running',
-                statusText: '签到中...',
-                reward: '',
-                coins: ''
-            };
-        }
-        
-        // 解析奖励信息
-        if (logEntry.includes('今天获得的奖励是')) {
-            const rewardMatch = logEntry.match(/今天获得的奖励是[「『]?([^」』\n]+)[」』]?\s*x?(\d+)?/);
-            if (rewardMatch) {
-                const newReward = rewardMatch[2] ? `${rewardMatch[1]} x${rewardMatch[2]}` : rewardMatch[1];
-                
-                if (this.signInDetails[gameKey].reward) {
-                    this.signInDetails[gameKey].reward += `, ${newReward}`;
-                } else {
-                    this.signInDetails[gameKey].reward = newReward;
-                }
-                
-                this.signInDetails[gameKey].status = 'success';
-                this.signInDetails[gameKey].statusText = '签到成功';
+        try {
+            // 使用 RewardParser 从实时日志解析奖励
+            const updatedDetails = this.rewardParser.parseSignInRewardsFromRealTimeLog(
+                gameKey, 
+                logEntry, 
+                this.config, 
+                this.signInDetails[gameKey]
+            );
+            
+            if (updatedDetails) {
+                this.signInDetails[gameKey] = updatedDetails;
                 this.updateSignInDetails();
-                
-                console.log('实时解析到奖励:', newReward, '总奖励:', this.signInDetails[gameKey].reward);
             }
-        }
-        
-        // 解析米游币信息
-        if (logEntry.includes('米游币')) {
-            const totalCoinMatch = logEntry.match(/目前有\s*(\d+)\s*个?米游币/);
-            if (totalCoinMatch) {
-                this.signInDetails[gameKey].coins = `总计 ${totalCoinMatch[1]}`;
-                this.updateSignInDetails();
-                console.log('实时解析到总米游币:', this.signInDetails[gameKey].coins);
-            } else {
-                const coinMatch = logEntry.match(/(?:已经获得|今天已经签到过了|获得|今天获得)\s*(\d+)\s*个?米游币/);
-                if (coinMatch) {
-                    const todayCoins = coinMatch[1];
-                    const currentCoins = this.signInDetails[gameKey].coins;
-                    this.signInDetails[gameKey].coins = currentCoins ? 
-                        `${currentCoins} (今日+${todayCoins})` : `今日 ${todayCoins}`;
-                    this.updateSignInDetails();
-                    console.log('实时解析到今日米游币:', todayCoins);
-                }
-            }
+        } catch (error) {
+            console.error('实时解析签到奖励失败:', error);
         }
     }
     
@@ -1882,13 +1654,13 @@ class AutoMihoyoApp {
         container.innerHTML = Object.entries(this.signInDetails).map(([gameKey, details]) => `
             <div class="signin-item-sidebar ${details.status}">
                 <div class="signin-game-sidebar">
-                    <div class="signin-game-icon-sidebar">${details.icon || '🎮'}</div>
+                    <div class="signin-game-icon-sidebar">${details.icon || this.rewardParser.getGameIcon(gameKey)}</div>
                     <span class="signin-game-name-sidebar">${details.name || gameKey}</span>
                 </div>
                 <div class="signin-result-sidebar">
                     <div class="signin-status-sidebar ${details.status}">${details.statusText}</div>
                     ${details.reward ? details.reward.split(',').map(item => `<div class="signin-reward-sidebar">🎁 ${item.trim()}</div>`).join('') : ''}
-                    ${details.coins ? `<div class="signin-reward-sidebar">🪙 总计 ${details.coins}</div>` : ''}
+                    ${details.coins ? `<div class="signin-reward-sidebar">🪙 ${details.coins}</div>` : ''}
                 </div>
             </div>
         `).join('');
