@@ -49,10 +49,12 @@
     border-right: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
+    transition: all 0.3s ease;
 }
 
 .nav-menu {
     padding: 1rem;
+    transition: all 0.3s ease;
 }
 
 .nav-item {
@@ -139,12 +141,16 @@
     background: rgba(236, 240, 241, 0.5);
     border-radius: 8px;
     margin: 1rem;
+    transition: all 0.3s ease;
 }
 
 .status-panel h3 {
     font-size: 1rem;
     margin-bottom: 1rem;
     color: var(--text-dark);
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 0;
 }
 
 .status-item {
@@ -415,3 +421,201 @@
 #sidebarSignInSection.show {
     display: block;
 }
+
+/* 任务运行时侧边栏的基础样式调整 - 只显示切换按钮 */
+.sidebar.task-running .sidebar-toggle-btn {
+    display: flex;
+}
+
+/* 手动收起导航菜单时的样式 */
+.sidebar.nav-collapsed .nav-menu {
+    display: none;
+}
+
+.sidebar.nav-collapsed .status-panel {
+    margin-top: 0;
+    border-radius: 0;
+    margin: 0;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 状态面板在手动收起时的额外样式调整 */
+.sidebar.nav-collapsed .status-panel h3 {
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 0;
+}
+
+/* 手动收起时的状态面板标题样式 */
+.sidebar.nav-collapsed .status-panel h3:first-child {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    padding: 1rem;
+    margin: 0;
+    border-bottom: 1px solid var(--glass-border);
+    font-weight: 600;
+}
+
+/* 任务运行时的快捷操作面板 */
+.quick-actions-panel {
+    display: none;
+    padding: 1rem;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.sidebar.task-running .quick-actions-panel {
+    display: block;
+}
+
+.quick-actions-panel h3 {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: center;
+}
+
+.quick-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.8rem 0.5rem;
+    background: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.quick-action-btn:hover {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: rgba(52, 152, 219, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+
+.quick-action-btn:active {
+    transform: translateY(0);
+}
+
+.quick-action-btn .action-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.quick-action-btn .action-text {
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.quick-actions-divider {
+    height: 1px;
+    background: var(--glass-border);
+    margin: 0 -1rem 0 -1rem;
+}
+
+/* 禁用状态的快捷按钮 */
+.quick-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(108, 117, 125, 0.1);
+    border-color: rgba(108, 117, 125, 0.3);
+    color: var(--text-muted);
+}
+
+.quick-action-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background: rgba(108, 117, 125, 0.1);
+    border-color: rgba(108, 117, 125, 0.3);
+}
+
+/* 状态面板标题区域 */
+.status-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.status-panel-header h3 {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+/* 侧边栏切换按钮 */
+.sidebar-toggle-btn {
+    background: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: rgba(52, 152, 219, 0.5);
+    transform: scale(1.1);
+}
+
+.sidebar-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+/* 当导航菜单被手动收起时的样式 */
+.sidebar.nav-collapsed .nav-menu {
+    display: none;
+}
+
+.sidebar.nav-collapsed .status-panel {
+    margin-top: 0;
+}
+
+/* 切换按钮在收起状态时的图标变化 */
+.sidebar.nav-collapsed .sidebar-toggle-btn .toggle-icon::before {
+    content: '📋';
+}
+
+.sidebar:not(.nav-collapsed) .sidebar-toggle-btn .toggle-icon::before {
+    content: '📌';
+}
+
+.toggle-icon::before {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+

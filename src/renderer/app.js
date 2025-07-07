@@ -76,7 +76,6 @@ class AutoMihoyoApp {
                 throw new Error(result.error);
             }
             this.config = result;
-            this.updateLastUpdated();
         } finally {
             this.showLoading(false);
         }
@@ -90,7 +89,6 @@ class AutoMihoyoApp {
                 throw new Error(result.error);
             }
             this.showNotification('配置保存成功', 'success');
-            this.updateLastUpdated();
             this.updateStatusPanel();
         } catch (error) {
             this.showNotification(`保存配置失败: ${error.message}`, 'error');
@@ -129,6 +127,9 @@ class AutoMihoyoApp {
         document.getElementById('quickStartGenshin').addEventListener('click', () => this.quickStartGame('betterGenshinImpact'));
         document.getElementById('quickStartStarRail').addEventListener('click', () => this.quickStartGame('march7thAssistant'));
         document.getElementById('quickStartZenless').addEventListener('click', () => this.quickStartGame('zenlessZoneZero'));
+        
+        // 侧边栏切换按钮事件
+        document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebarManually());
         
         // 页面关闭时清理定时器
         window.addEventListener('beforeunload', () => {
@@ -655,6 +656,9 @@ class AutoMihoyoApp {
             // 立即更新一次状态
             this.updateSidebarProcesses();
             
+            // 任务开始时隐藏侧边栏导航菜单
+            this.toggleSidebarNavigation(true);
+            
             // 开始监控任务完成状态
             console.log('🔍 开始监控任务完成状态');
             this.startBatchTaskMonitoring(runAllBtn, originalText);
@@ -662,8 +666,9 @@ class AutoMihoyoApp {
         } catch (error) {
             console.error('❌ runAllGames 执行失败:', error);
             this.showNotification(`❌ 批量执行失败: ${error.message}`, 'error');
-            // 发生错误时立即恢复按钮
+            // 发生错误时立即恢复按钮和侧边栏显示
             this.updateRunAllButtonState('idle');
+            this.toggleSidebarNavigation(false);
         } finally {
             this.showLoading(false);
         }
@@ -702,6 +707,8 @@ class AutoMihoyoApp {
                         setTimeout(() => {
                             console.log('🔄 最终阶段：恢复按钮到初始状态');
                             this.updateRunAllButtonState('idle');
+                            // 任务全部完成时恢复侧边栏导航菜单显示
+                            this.toggleSidebarNavigation(false);
                         }, 2000);
                         
                         // 清除监控
@@ -736,6 +743,8 @@ class AutoMihoyoApp {
                 
                 if (!allTasksCompleted) {
                     this.updateRunAllButtonState('idle');
+                    // 超时时也恢复侧边栏显示
+                    this.toggleSidebarNavigation(false);
                     this.showNotification('⚠️ 监控超时，按钮状态已重置', 'warning');
                 }
             }
@@ -1203,9 +1212,74 @@ class AutoMihoyoApp {
             }
             
             queueContainer.innerHTML = queueHtml;
+            
+            // 控制侧边栏导航显示：有任务运行时显示切换按钮
+            this.toggleSidebarNavigation(isExecutingTask || queueLength > 0);
+            
+            // 更新切换按钮状态
+            this.updateToggleButtonState();
         }).catch(err => {
             console.error('获取队列状态失败:', err);
         });
+    }
+    
+    // 控制侧边栏导航显示的方法
+    toggleSidebarNavigation(hasRunningTasks) {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        
+        if (hasRunningTasks) {
+            // 有任务运行时，显示切换按钮，但不自动隐藏导航菜单
+            sidebar.classList.add('task-running');
+            // 检查是否有用户的手动设置
+            if (!sidebar.hasAttribute('data-user-collapsed')) {
+                // 如果用户没有手动设置，默认隐藏导航菜单
+                sidebar.classList.add('nav-collapsed');
+            }
+        } else {
+            // 没有任务运行时，隐藏切换按钮，恢复导航菜单显示
+            sidebar.classList.remove('task-running');
+            sidebar.classList.remove('nav-collapsed');
+            sidebar.removeAttribute('data-user-collapsed');
+        }
+    }
+    
+    // 手动切换侧边栏导航菜单显示/隐藏
+    toggleSidebarManually() {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        
+        const isCollapsed = sidebar.classList.contains('nav-collapsed');
+        
+        if (isCollapsed) {
+            // 当前是收起状态，展开导航菜单
+            sidebar.classList.remove('nav-collapsed');
+            sidebar.setAttribute('data-user-collapsed', 'false');
+        } else {
+            // 当前是展开状态，收起导航菜单
+            sidebar.classList.add('nav-collapsed');
+            sidebar.setAttribute('data-user-collapsed', 'true');
+        }
+        
+        // 更新按钮状态
+        this.updateToggleButtonState();
+    }
+    
+    // 更新切换按钮的状态
+    updateToggleButtonState() {
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.getElementById('sidebarToggleBtn');
+        
+        if (!sidebar || !toggleBtn) return;
+        
+        const isCollapsed = sidebar.classList.contains('nav-collapsed');
+        
+        // 只更新提示文本，图标由CSS自动控制
+        if (isCollapsed) {
+            toggleBtn.title = '展开导航菜单';
+        } else {
+            toggleBtn.title = '收起导航菜单';
+        }
     }
     
     // 从后端获取队列状态
@@ -1507,14 +1581,6 @@ class AutoMihoyoApp {
         statusElement.className = `status-badge ${status}`;
     }
 
-    updateLastUpdated() {
-        const lastUpdated = this.config?.lastUpdated;
-        if (lastUpdated) {
-            const date = new Date(lastUpdated);
-            document.getElementById('lastUpdated').textContent = `最后更新: ${date.toLocaleString()}`;
-        }
-    }
-
     showLoading(show) {
         const overlay = document.getElementById('loadingOverlay');
         overlay.style.display = show ? 'flex' : 'none';
@@ -1544,10 +1610,6 @@ class AutoMihoyoApp {
                 notification.parentNode.removeChild(notification);
             }
         }, displayTime);
-    }
-
-    updateStatusText(text) {
-        document.getElementById('statusText').textContent = text;
     }
 
     async runGameFromConfig(gameKey) {

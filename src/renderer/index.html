@@ -121,7 +121,12 @@
                 
                 <!-- 状态面板 -->
                 <div class="status-panel">
-                    <h3>📈 状态概览</h3>
+                    <div class="status-panel-header">
+                        <h3>📈 状态概览</h3>
+                        <button id="sidebarToggleBtn" class="sidebar-toggle-btn" title="展开/收起导航菜单">
+                            <span class="toggle-icon"></span>
+                        </button>
+                    </div>
                     <div class="status-item">
                         <span>配置状态:</span>
                         <span id="configStatus" class="status-badge">未知</span>
@@ -336,14 +341,6 @@
                 </div>
             </div>
         </main>
-
-        <!-- 状态栏 -->
-        <footer class="app-footer">
-            <div class="footer-content">
-                <span id="statusText">就绪</span>
-                <span id="lastUpdated"></span>
-            </div>
-        </footer>
     </div>
 
     <!-- 加载中遮罩 -->
