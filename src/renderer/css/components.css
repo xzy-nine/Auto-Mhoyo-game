@@ -89,11 +89,12 @@
     width: 42px;
     height: 22px;
     background: linear-gradient(135deg, #bdc3c7, #95a5a6);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     border-radius: 11px;
     box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.1),
         0 2px 8px rgba(0, 0, 0, 0.1);
+    will-change: background, box-shadow;
 }
 
 .modern-toggle .toggle-slider:before {
@@ -104,11 +105,12 @@
     left: 3px;
     bottom: 3px;
     background: linear-gradient(135deg, #ffffff, #f8f9fa);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     border-radius: 50%;
     box-shadow: 
         0 2px 6px rgba(0, 0, 0, 0.2),
         0 1px 3px rgba(0, 0, 0, 0.1);
+    will-change: transform;
 }
 
 .modern-toggle input:checked + .toggle-slider {
@@ -124,11 +126,13 @@
 }
 
 .modern-toggle:hover .toggle-slider {
-    transform: scale(1.05);
+    transform: scale3d(1.03, 1.03, 1);
+    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .modern-toggle:active .toggle-slider {
-    transform: scale(0.95);
+    transform: scale3d(0.97, 0.97, 1);
+    transition: transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* 现代化下拉选择框样式 */
@@ -153,14 +157,15 @@
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     box-shadow: 0 2px 8px var(--shadow-secondary);
+    will-change: transform, border-color, box-shadow;
 }
 
 .modern-select:hover {
     border-color: var(--color-info);
     box-shadow: 0 4px 16px rgba(52, 152, 219, 0.1);
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 .modern-select:focus {
@@ -169,7 +174,7 @@
     box-shadow: 
         0 0 0 3px rgba(52, 152, 219, 0.1),
         0 4px 20px rgba(52, 152, 219, 0.15);
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
 }
 
 .select-arrow {
@@ -179,7 +184,8 @@
     transform: translateY(-50%);
     pointer-events: none;
     color: var(--text-light);
-    transition: all 0.3s ease;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform, color;
 }
 
 .modern-select:focus + .select-arrow {
@@ -201,14 +207,15 @@
     color: var(--text-dark);
     font-size: 0.9rem;
     font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     box-shadow: 0 2px 8px var(--shadow-secondary);
+    will-change: transform, border-color, box-shadow;
 }
 
 .modern-input:hover {
     border-color: var(--color-info);
     box-shadow: 0 4px 16px rgba(52, 152, 219, 0.1);
-    transform: translateY(-1px);
+    transform: translate3d(0, -1px, 0);
 }
 
 .modern-input:focus {
@@ -217,7 +224,7 @@
     box-shadow: 
         0 0 0 3px rgba(52, 152, 219, 0.1),
         0 4px 20px rgba(52, 152, 219, 0.15);
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
 }
 
 /* 表单组样式 */
@@ -418,8 +425,8 @@
     height: 100%;
     background: linear-gradient(90deg, var(--success-color) 0%, #4caf50 100%);
     border-radius: 4px;
-    transition: width 0.6s ease;
-    animation: progressFill 0.8s ease-out;
+    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation: progressFill 0.4s ease-out;
 }
 
 .progress-percentage {
@@ -427,7 +434,7 @@
     font-size: 0.7rem;
     color: var(--text-secondary);
     font-weight: 600;
-    animation: queueSlideIn 0.5s ease-out;
+    animation: queueSlideIn 0.3s ease-out;
 }
 
 .queue-current-task {
@@ -614,7 +621,7 @@
     color: var(--warning-color);
     font-size: 0.75rem;
     font-weight: 500;
-    animation: countdown 2s infinite ease-in-out;
+    animation: countdown 1.2s infinite ease-in-out;
 }
 
 .queue-estimate {
@@ -687,7 +694,7 @@
     height: 100%;
     background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
     transform: translateX(-100%);
-    animation: shimmer 2s infinite;
+    animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
@@ -814,12 +821,12 @@
 /* 为不同状态添加不同的背景色 */
 #runAllBtn[data-state="starting"] {
     background: linear-gradient(45deg, #f39c12, #e67e22);
-    animation: pulse 1.5s infinite;
+    animation: pulse 1s infinite;
 }
 
 #runAllBtn[data-state="executing"] {
     background: linear-gradient(45deg, #3498db, #2980b9);
-    animation: pulse 2s infinite;
+    animation: pulse 1.2s infinite;
 }
 
 #runAllBtn[data-state="completed"] {

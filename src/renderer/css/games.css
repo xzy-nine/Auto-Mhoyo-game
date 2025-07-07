@@ -18,13 +18,14 @@
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 4px 20px var(--shadow-primary);
-    transition: all 0.3s ease;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     border: 2px solid transparent;
+    will-change: transform, box-shadow;
 }
 
 .game-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 30px var(--shadow-secondary);
+    transform: translate3d(0, -3px, 0);
+    box-shadow: 0 6px 25px var(--shadow-secondary);
 }
 
 .game-card.enabled {

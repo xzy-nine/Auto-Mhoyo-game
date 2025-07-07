@@ -47,9 +47,9 @@ class AutoMihoyoApp {
         }
     }
 
-    // 移除加载遮罩
+    // 移除加载遮罩 - 优化版本
     removeLoadingOverlay() {
-        // 确保所有内容都已完全加载和渲染
+        // 使用优化的动画处理
         requestAnimationFrame(() => {
             setTimeout(() => {
                 document.body.classList.add('ready');
@@ -57,14 +57,21 @@ class AutoMihoyoApp {
                 if (window.electronAPI && window.electronAPI.notifyReady) {
                     window.electronAPI.notifyReady();
                 }
-                // 更长延迟确保平滑过渡，完全避免闪烁
+                // 优化的延迟时间，减少等待
                 setTimeout(() => {
                     const loadingOverlay = document.querySelector('.loading-overlay');
-                    if (loadingOverlay) {
+                    if (loadingOverlay && window.animationOptimizer) {
+                        // 使用优化的动画移除加载覆盖层
+                        window.animationOptimizer.animate(loadingOverlay, {
+                            duration: 300,
+                            properties: { opacity: '0' },
+                            onComplete: () => loadingOverlay.remove()
+                        });
+                    } else if (loadingOverlay) {
                         loadingOverlay.remove();
                     }
-                }, 800);
-            }, 300);
+                }, 400); // 减少延迟时间
+            }, 150); // 减少延迟时间
         });
     }
 
@@ -601,13 +608,13 @@ class AutoMihoyoApp {
         console.log('🚀 第一阶段：切换到启动状态');
         this.updateRunAllButtonState('starting', true);
         
-        // 强制刷新 UI，确保第一阶段立即显示
+        // 强制刷新 UI，确保第一阶段立即显示 - 优化版本
         await new Promise(resolve => {
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     console.log('✅ UI 刷新完成，准备进入下一阶段');
                     resolve();
-                }, 100); // 短暂延迟确保UI更新
+                }, 50); // 减少延迟时间
             });
         });
         

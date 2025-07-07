@@ -21,5 +21,8 @@
 /* 动画和交互效果 */
 @import './animations.css';
 
+/* 性能优化 */
+@import './performance-optimizations.css';
+
 /* 响应式设计 */
 @import './responsive.css';

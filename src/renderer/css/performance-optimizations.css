@@ -1,0 +1,175 @@
+/* 高性能动画优化 */
+
+/* 全局性能优化设置 */
+:root {
+    /* 优化的timing functions */
+    --fast-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --bounce-ease: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --smooth-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* 优化的动画duration */
+    --anim-fast: 150ms;
+    --anim-normal: 200ms;
+    --anim-slow: 300ms;
+}
+
+/* 强制GPU加速 */
+.gpu-accelerated,
+.modern-toggle .toggle-slider,
+.modern-toggle .toggle-slider:before,
+.btn,
+.game-card,
+.status-card,
+.nav-item,
+.setting-item,
+.modern-select,
+.modern-input,
+.progress-fill {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+}
+
+/* 减少layout thrashing */
+.will-change-transform {
+    will-change: transform;
+}
+
+.will-change-opacity {
+    will-change: opacity;
+}
+
+.will-change-auto {
+    will-change: auto;
+}
+
+/* 覆盖慢速动画 */
+.btn,
+.game-card,
+.status-card,
+.process-item,
+.setting-item,
+.nav-item {
+    transition: all var(--anim-normal) var(--fast-ease) !important;
+}
+
+.modern-toggle .toggle-slider {
+    transition: all var(--anim-normal) var(--fast-ease) !important;
+}
+
+.modern-toggle .toggle-slider:before {
+    transition: transform var(--anim-normal) var(--fast-ease) !important;
+}
+
+.modern-select,
+.modern-input {
+    transition: all var(--anim-normal) var(--fast-ease) !important;
+}
+
+/* 悬停效果优化 */
+.btn:hover,
+.game-card:hover,
+.status-card:hover,
+.setting-item:hover {
+    transform: translate3d(0, -2px, 0) !important;
+    transition: transform var(--anim-fast) var(--fast-ease) !important;
+}
+
+/* 点击效果优化 */
+.btn:active {
+    transform: translate3d(0, 0, 0) scale3d(0.98, 0.98, 1) !important;
+    transition: transform var(--anim-fast) var(--fast-ease) !important;
+}
+
+/* 进度条动画优化 */
+.progress-fill {
+    transition: width var(--anim-slow) var(--fast-ease) !important;
+}
+
+/* 脉冲动画频率优化 */
+@keyframes fast-pulse {
+    0% {
+        transform: scale3d(1, 1, 1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale3d(1.02, 1.02, 1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale3d(1, 1, 1);
+        opacity: 1;
+    }
+}
+
+/* 加载旋转优化 */
+@keyframes fast-spin {
+    0% { 
+        transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+    100% { 
+        transform: translate3d(0, 0, 0) rotate(360deg);
+    }
+}
+
+/* 队列滑入动画优化 */
+@keyframes fast-slide-in {
+    0% {
+        transform: translate3d(0, -10px, 0);
+        opacity: 0;
+    }
+    100% {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+/* 应用优化的动画 */
+.loading-spinner {
+    animation: fast-spin 0.8s linear infinite !important;
+}
+
+.pulse-animation {
+    animation: fast-pulse 1s infinite !important;
+}
+
+.slide-in-animation {
+    animation: fast-slide-in var(--anim-normal) var(--fast-ease) !important;
+}
+
+/* 滚动条优化 */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    transition: background var(--anim-fast) var(--fast-ease);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* 减少重绘 */
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* 硬件加速提示 */
+.hardware-accelerated {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}

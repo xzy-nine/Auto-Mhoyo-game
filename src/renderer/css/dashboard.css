@@ -156,7 +156,7 @@
     border-radius: 50%;
     background: #27ae60;
     box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.3);
-    animation: pulse 2s infinite;
+    animation: pulse 1.2s infinite;
 }
 
 .status-indicator.stopped {
@@ -168,7 +168,7 @@
 .status-indicator.running {
     background: #27ae60;
     box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.3);
-    animation: pulse 2s infinite;
+    animation: pulse 1.2s infinite;
 }
 
 .status-indicator.completed {
