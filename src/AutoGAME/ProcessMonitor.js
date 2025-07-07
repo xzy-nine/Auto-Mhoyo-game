@@ -88,6 +88,17 @@ class ProcessMonitor {
     
     for (const [gameKey, processInfo] of this.runningProcesses.entries()) {
       try {
+        // 对于阻塞运行的任务，只更新运行时间，不检查进程状态
+        if (processInfo.isBlockingTask) {
+          processInfo.runTime = Date.now() - processInfo.startTime;
+          const runTimeMinutes = Math.floor(processInfo.runTime / 60000);
+          if (runTimeMinutes > 0 && runTimeMinutes % 5 === 0) { // 每5分钟打印一次状态
+            console.log(`阻塞任务运行中: ${processInfo.name} - 运行时间: ${runTimeMinutes}分钟`);
+          }
+          continue;
+        }
+        
+        // 对于进程监控的任务，检查进程是否还在运行
         const isRunning = await this.isProcessRunning(processInfo.processName);
         if (!isRunning) {
           console.log(`进程已停止: ${processInfo.name} (${processInfo.processName})`);
@@ -100,7 +111,7 @@ class ProcessMonitor {
           }
         }
       } catch (error) {
-        console.error(`检查进程失败 ${processInfo.processName}:`, error);
+        console.error(`检查进程失败 ${processInfo.processName || processInfo.name}:`, error);
       }
     }
   }
@@ -793,22 +804,28 @@ class ProcessMonitor {
       return {
         gameKey: key,
         name: info.name,
-        processName: info.processName,
+        processName: info.processName || '阻塞运行',
         startTime: info.startTime,
         endTime: info.endTime,
         runTime: runTime,
         runTimeFormatted: this.formatDuration(runTime),
-        status: info.status || 'running',
+        status: info.status || (info.isBlockingTask ? '阻塞运行中' : 'running'),
         pid: info.pid,
-        isSignInTask: info.isSignInTask || false
+        isSignInTask: info.isSignInTask || false,
+        isBlockingTask: info.isBlockingTask || false,
+        isMonitoredTask: info.isMonitoredTask || false
       };
     });
 
     // 获取当前执行任务信息
     let currentTask = null;
-    if (this.isExecutingTask && this.taskQueue.length >= 0) {
-      // 如果有正在执行的任务，尝试从进程列表中找到
-      const runningProcess = processesArray.find(p => p.status === 'running');
+    if (this.isExecutingTask) {
+      // 优先从正在运行的进程中找到当前任务
+      const runningProcess = processesArray.find(p => 
+        p.status === 'running' || 
+        p.status === '阻塞运行中' || 
+        p.isBlockingTask
+      );
       if (runningProcess) {
         const gameConfig = this.autoGame.config?.games?.[runningProcess.gameKey];
         currentTask = {
@@ -816,7 +833,11 @@ class ProcessMonitor {
           gameName: gameConfig?.name || runningProcess.gameKey,
           startTime: runningProcess.startTime,
           runTime: runningProcess.runTime,
-          isSignInTask: runningProcess.isSignInTask
+          isSignInTask: runningProcess.isSignInTask,
+          isBlockingTask: runningProcess.isBlockingTask,
+          isMonitoredTask: runningProcess.isMonitoredTask,
+          processName: runningProcess.processName,
+          status: runningProcess.status
         };
       }
     }

@@ -549,6 +549,19 @@ class AutoGAME {
                   isSignTask: true
                 });
                 
+                // 更新进程状态为完成
+                const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+                if (processInfo) {
+                  processInfo.endTime = endTime;
+                  processInfo.status = 'completed';
+                  processInfo.runTime = duration;
+                  
+                  // 延迟清理进程状态，让前端有时间显示完成状态
+                  setTimeout(() => {
+                    this.processMonitor.runningProcesses.delete(gameKey);
+                  }, 3000);
+                }
+                
                 this.log(`签到脚本阻塞运行时长统计: +${this.processMonitor.formatDuration(duration / 1000)}, 累计总时长: ${this.processMonitor.formatDuration(this.processMonitor.totalAccumulatedRuntime / 1000)}`);
                 
                 resolve({
@@ -563,6 +576,20 @@ class AutoGAME {
               } else {
                 const errorMsg = `${game.name} 签到失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
                 await this.writeLog(logFile, `失败: ${errorMsg}`);
+                
+                // 更新失败任务的进程状态
+                const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+                if (processInfo) {
+                  processInfo.endTime = endTime;
+                  processInfo.status = 'failed';
+                  processInfo.runTime = duration;
+                  
+                  // 延迟清理进程状态，让前端有时间显示失败状态
+                  setTimeout(() => {
+                    this.processMonitor.runningProcesses.delete(gameKey);
+                  }, 5000);
+                }
+                
                 reject(new Error(errorMsg));
               }
             }
@@ -626,6 +653,19 @@ class AutoGAME {
               this.log(`${taskType}阻塞运行时长统计: +${this.processMonitor.formatDuration(duration / 1000)}, 累计总时长: ${this.processMonitor.formatDuration(this.processMonitor.totalAccumulatedRuntime / 1000)}`);
             }
             
+            // 无论是否配置了进程监控，都需要清理进程状态
+            const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+            if (processInfo) {
+              processInfo.endTime = endTime;
+              processInfo.status = 'completed';
+              processInfo.runTime = duration;
+              
+              // 延迟清理进程状态，让前端有时间显示完成状态
+              setTimeout(() => {
+                this.processMonitor.runningProcesses.delete(gameKey);
+              }, 3000);
+            }
+            
             resolve({
               success: true,
               gameKey,
@@ -638,6 +678,20 @@ class AutoGAME {
           } else {
             const errorMsg = `${game.name} 执行失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
             await this.writeLog(logFile, `失败: ${errorMsg}`);
+            
+            // 清理失败任务的进程状态
+            const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+            if (processInfo) {
+              processInfo.endTime = endTime;
+              processInfo.status = 'failed';
+              processInfo.runTime = duration;
+              
+              // 延迟清理进程状态，让前端有时间显示失败状态
+              setTimeout(() => {
+                this.processMonitor.runningProcesses.delete(gameKey);
+              }, 5000);
+            }
+            
             reject(new Error(errorMsg));
           }
         });
@@ -649,6 +703,20 @@ class AutoGAME {
           await this.writeLog(logFile, `启动失败: ${formattedError}`);
           await this.writeLog(logFile, `错误代码: ${error.code || 'Unknown'}`);
           await this.writeLog(logFile, `错误堆栈: ${error.stack}`);
+          
+          // 清理启动失败任务的进程状态
+          const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+          if (processInfo) {
+            processInfo.endTime = Date.now();
+            processInfo.status = 'error';
+            processInfo.runTime = Date.now() - startTime;
+            
+            // 延迟清理进程状态，让前端有时间显示错误状态
+            setTimeout(() => {
+              this.processMonitor.runningProcesses.delete(gameKey);
+            }, 5000);
+          }
+          
           reject(new Error(formattedError));
         });
 
@@ -661,7 +729,7 @@ class AutoGAME {
           }
         }, 2000);
 
-        // 存储进程信息用于监控（仅用于状态显示，具体监控逻辑在close事件中处理）
+        // 存储进程信息用于监控和状态显示
         const shouldMonitor = game.monitoring && game.monitoring.enabled &&
           (game.monitoring.processName || game.monitoring.customProcessName);
            
@@ -685,6 +753,25 @@ class AutoGAME {
               console.log(`将监控进程: ${game.name} -> ${processName} (启动后开始)`);
             }
           }
+        } else {
+          // 未开启进程监控的任务也需要在运行时显示状态
+          this.processMonitor.runningProcesses.set(gameKey, {
+            pid: childProcess.pid,
+            name: game.name,
+            processName: null, // 没有监控进程名
+            startTime: startTime,
+            childProcess: childProcess,
+            runTime: 0,
+            isBlockingTask: true, // 标记为阻塞运行任务
+            isSignInTask: (gameKey === 'mihoyoBBSTools' || 
+                          gameKey.includes('sign') || 
+                          game.name.includes('签到') ||
+                          (game.path && (game.path.includes('sign') || game.path.includes('签到')))),
+            status: 'running'
+          });
+          console.log(`已启动阻塞运行任务: ${game.name} -> PID: ${childProcess.pid || 'Unknown'}`);
+          this.log(`${game.name}: 阻塞运行模式启动，PID: ${childProcess.pid || 'Unknown'}`);
+          this.sendRealTimeLog(gameKey, `阻塞运行模式启动，PID: ${childProcess.pid || 'Unknown'}`);
         }
       });
     } catch (error) {

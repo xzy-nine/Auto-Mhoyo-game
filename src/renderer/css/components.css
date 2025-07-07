@@ -378,11 +378,30 @@
 }
 
 .queue-current-task {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 12px;
     color: white;
+}
+
+/* 默认游戏任务背景 */
+.queue-current-task {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 签到任务背景 */
+.queue-current-task.signin-task {
+    background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+}
+
+/* 阻塞任务背景 */
+.queue-current-task.blocking-task {
+    background: linear-gradient(135deg, #ff7043 0%, #ff8a65 100%);
+}
+
+/* 监控任务背景 */
+.queue-current-task.monitored-task {
+    background: linear-gradient(135deg, #26a69a 0%, #4db6ac 100%);
 }
 
 .task-header {
@@ -417,6 +436,13 @@
 .task-runtime {
     font-size: 0.8rem;
     opacity: 0.9;
+}
+
+.task-process {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 2px;
+    font-style: italic;
 }
 
 .queue-waiting-tasks {

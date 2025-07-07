@@ -18,7 +18,7 @@
       "waitTime": 5000,
       "monitoring": {
         "enabled": false,
-        "processName": "python.exe",
+        "processName": "",
         "customProcessName": ""
       }
     },
@@ -30,8 +30,8 @@
       "arguments": [],
       "waitTime": 60000,
       "monitoring": {
-        "enabled": false,
-        "processName": "March7thAssistant.exe",
+        "enabled": true,
+        "processName": "HonkaiStarRail.exe",
         "customProcessName": ""
       }
     },
@@ -43,8 +43,8 @@
       "arguments": [],
       "waitTime": 60000,
       "monitoring": {
-        "enabled": false,
-        "processName": "OneDragon.exe",
+        "enabled": true,
+        "processName": "ZenlessZoneZero.exe",
         "customProcessName": ""
       }
     },
@@ -56,8 +56,8 @@
       "arguments": ["startOneDragon"],
       "waitTime": 60000,
       "monitoring": {
-        "enabled": false,
-        "processName": "BetterGI.exe",
+        "enabled": true,
+        "processName": "YuanShen.exe",
         "customProcessName": ""
       }
     }

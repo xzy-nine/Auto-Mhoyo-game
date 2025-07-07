@@ -946,16 +946,39 @@ class AutoMihoyoApp {
                 // 显示当前执行任务
                 const gameName = currentTask.gameName || currentTask.gameKey;
                 const runTime = currentTask.runTime ? this.formatDuration(currentTask.runTime * 1000) : '启动中';
-                const taskType = currentTask.isSignInTask ? '签到任务' : '游戏任务';
+                
+                // 根据任务类型确定显示的任务类型和CSS类
+                let taskType = '游戏任务';
+                let statusIcon = '🚀';
+                let statusText = '正在执行';
+                let taskClass = '';
+                
+                if (currentTask.isSignInTask) {
+                    taskType = '签到任务';
+                    taskClass = 'signin-task';
+                } else if (currentTask.isBlockingTask) {
+                    taskType = '阻塞任务';
+                    statusIcon = '⏳';
+                    statusText = '阻塞运行中';
+                    taskClass = 'blocking-task';
+                } else if (currentTask.isMonitoredTask) {
+                    taskType = '监控任务';
+                    statusIcon = '👁️';
+                    statusText = '进程监控中';
+                    taskClass = 'monitored-task';
+                }
                 
                 queueHtml += `
-                    <div class="queue-current-task">
+                    <div class="queue-current-task ${taskClass}">
                         <div class="task-header">
-                            <span class="task-status running">🚀 正在执行</span>
+                            <span class="task-status running">${statusIcon} ${statusText}</span>
                             <span class="task-type">${taskType}</span>
                         </div>
                         <div class="task-name">${gameName}</div>
                         <div class="task-runtime">运行时间: ${runTime}</div>
+                        ${currentTask.processName && currentTask.processName !== '阻塞运行' ? 
+                            `<div class="task-process">监控进程: ${currentTask.processName}</div>` : 
+                            ''}
                     </div>
                 `;
             }
