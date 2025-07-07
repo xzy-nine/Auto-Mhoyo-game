@@ -371,3 +371,143 @@
 .modern-input:focus {
     border-color: var(--color-info);
 }
+
+/* 任务队列状态样式 */
+.queue-status-container {
+    margin-top: 0.5rem;
+}
+
+.queue-current-task {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    color: white;
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.task-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.task-status.running {
+    background: rgba(46, 204, 113, 0.8);
+}
+
+.task-type {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.task-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.task-runtime {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.queue-waiting-tasks {
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+}
+
+.queue-header {
+    margin-bottom: 8px;
+}
+
+.queue-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.queue-position {
+    font-weight: 600;
+    color: var(--accent-primary);
+    min-width: 20px;
+}
+
+.queue-task-name {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.queue-estimate {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+.queue-more {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.queue-idle {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-secondary);
+}
+
+.idle-status {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: var(--success-color);
+}
+
+.idle-message {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* 任务类型标签 */
+.task-type-badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+.task-type-badge.sign-in {
+    background: linear-gradient(45deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.task-type-badge.game {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+}

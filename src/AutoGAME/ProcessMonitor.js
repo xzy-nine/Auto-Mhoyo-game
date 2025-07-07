@@ -368,7 +368,7 @@ class ProcessMonitor {
   async waitForProcessCompletion(processName, gameKey, logFile) {
     return new Promise(async (resolve, reject) => {
       const maxWaitTime = 60 * 60 * 1000; // 最大等待1小时
-      const checkInterval = 5000; // 每5秒检查一次
+      const checkInterval = 3000; // 每3秒检查一次，更频繁监控
       const waitStartTime = Date.now(); // 等待启动的开始时间，不用于运行超时
        
       await this.autoGame.writeLog(logFile, `开始监控进程: ${processName}`);
@@ -377,19 +377,48 @@ class ProcessMonitor {
        let processStarted = false;
        let processStartTime = null;
       
-      // 等待最多30秒让进程启动
-      await this.autoGame.writeLog(logFile, `等待进程 ${processName} 启动...`);
-      for (let i = 0; i < 6; i++) {
-        const isRunning = await this.isProcessRunning(processName);
-        await this.autoGame.writeLog(logFile, `检查进程 ${processName} 状态: ${isRunning ? '运行中' : '未运行'} (尝试 ${i + 1}/6)`);
+      // 对于签到脚本，从启动命令开始就计时
+      const isSignInTask = gameKey === 'mihoyoBBSTools' || 
+                          processName.includes('sign') || 
+                          processName.includes('签到') ||
+                          processName.includes('python.exe');
+                          
+      if (isSignInTask) {
+        // 签到脚本：立即开始计时，因为脚本启动即开始执行
+        processStarted = true;
+        processStartTime = Date.now(); // 从命令启动时开始计时
+        await this.autoGame.writeLog(logFile, `签到脚本开始执行: ${processName} (开始计时)`);
         
-        if (isRunning) {
-          processStarted = true;
-          processStartTime = Date.now(); // 记录实际启动时间
-           await this.autoGame.writeLog(logFile, `检测到进程 ${processName} 已启动`);
-           break;
-         }
-        await this.autoGame.sleep(5000);
+        // 等待进程实际出现在系统中
+        let processDetected = false;
+        for (let i = 0; i < 10; i++) {
+          const isRunning = await this.isProcessRunning(processName);
+          if (isRunning) {
+            processDetected = true;
+            await this.autoGame.writeLog(logFile, `检测到签到进程 ${processName} 在系统中运行`);
+            break;
+          }
+          await this.autoGame.sleep(2000); // 签到脚本检查更频繁
+        }
+        
+        if (!processDetected) {
+          await this.autoGame.writeLog(logFile, `警告: 未在系统中检测到进程 ${processName}，但继续监控...`);
+        }
+      } else {
+        // 其他类型任务：等待进程启动后才开始计时
+        await this.autoGame.writeLog(logFile, `等待进程 ${processName} 启动...`);
+        for (let i = 0; i < 10; i++) {
+          const isRunning = await this.isProcessRunning(processName);
+          await this.autoGame.writeLog(logFile, `检查进程 ${processName} 状态: ${isRunning ? '运行中' : '未运行'} (尝试 ${i + 1}/10)`);
+          
+          if (isRunning) {
+            processStarted = true;
+            processStartTime = Date.now(); // 检测到进程后开始计时
+            await this.autoGame.writeLog(logFile, `检测到进程 ${processName} 已启动，开始计时`);
+            break;
+          }
+          await this.autoGame.sleep(3000);
+        }
       }
       
       if (!processStarted) {
@@ -404,9 +433,10 @@ class ProcessMonitor {
         pid: null, // 外部进程，没有子进程PID
         name: gameKey,
         processName: processName,
-        startTime: processStartTime, // 基于检测到的启动时间
+        startTime: processStartTime, // 基于实际启动时间或命令执行时间
         childProcess: null,
-        runTime: 0
+        runTime: 0,
+        isSignInTask: isSignInTask // 标记是否为签到任务
       });
       
       // 监控进程直到退出
@@ -414,15 +444,18 @@ class ProcessMonitor {
         try {
           let lastStatusTime = Date.now();
           let consecutiveFailures = 0;
-          const maxConsecutiveFailures = 3; // 连续3次检测失败才认为进程结束
+          const maxConsecutiveFailures = isSignInTask ? 3 : 2; // 签到任务允许更多检测失败
           
           while (true) {
             const currentTime = Date.now();
             
             // 检查是否超时，基于实际启动时间
-            if (currentTime - processStartTime > maxWaitTime) {
+            const timeoutLimit = isSignInTask ? 10 * 60 * 1000 : maxWaitTime; // 签到任务最多10分钟
+            if (currentTime - processStartTime > timeoutLimit) {
               this.runningProcesses.delete(gameKey);
-              reject(new Error(`监控进程 ${processName} 超时（1小时）`));
+              const timeoutMsg = `监控进程 ${processName} 超时（${isSignInTask ? '10分钟' : '1小时'}）`;
+              await this.autoGame.writeLog(logFile, timeoutMsg);
+              reject(new Error(timeoutMsg));
               return;
             }
             
@@ -452,40 +485,55 @@ class ProcessMonitor {
               processInfo.runTime = runTime;
             }
             
-            // 每分钟记录一次状态
-            if (currentTime - lastStatusTime >= 60000) {
-              const minutes = Math.floor(runTime / 60000);
-              await this.autoGame.writeLog(logFile, `进程 ${processName} 运行中，已运行 ${minutes} 分钟`);
+            // 根据任务类型调整状态报告频率
+            const statusInterval = isSignInTask ? 15000 : 30000; // 签到任务每15秒报告一次
+            if (currentTime - lastStatusTime >= statusInterval) {
+              const seconds = Math.floor(runTime / 1000);
+              
+              if (isSignInTask) {
+                // 签到任务特殊提示
+                await this.autoGame.writeLog(logFile, `签到脚本运行中，已执行 ${seconds} 秒 (签到脚本通常需要1-3分钟)`);
+              } else {
+                const minutes = Math.floor(runTime / 60000);
+                await this.autoGame.writeLog(logFile, `进程 ${processName} 运行中，已运行 ${minutes} 分钟`);
+              }
               lastStatusTime = currentTime;
             }
             
-            await this.autoGame.sleep(checkInterval);
+            // 根据任务类型调整检查间隔
+            const checkIntervalAdjusted = isSignInTask ? 2000 : checkInterval; // 签到任务检查更频繁
+            await this.autoGame.sleep(checkIntervalAdjusted);
           }
           
           // 进程已退出 - 设置结束时间
           const endTime = Date.now();
-          const totalRunTime = endTime - processStartTime; // 仅计算启动后运行时长
-          await this.autoGame.writeLog(logFile, `进程 ${processName} 已退出，总运行时间: ${this.formatDuration(totalRunTime / 1000)}`);
+          const totalRunTime = endTime - processStartTime; // 从启动/检测开始到退出的完整时长
+          
+          const processInfo = this.runningProcesses.get(gameKey);
+          const taskType = processInfo?.isSignInTask ? '签到脚本' : '进程';
+          
+          await this.autoGame.writeLog(logFile, `${taskType} ${processName} 已退出，总运行时间: ${this.formatDuration(totalRunTime / 1000)}`);
            
            // 更新进程信息，标记为已结束
-           const processInfo = this.runningProcesses.get(gameKey);
            if (processInfo) {
              processInfo.endTime = endTime;
-             processInfo.status = 'completed'; // 标记为正常完成，而不是简单的停止
+             processInfo.status = 'completed'; // 标记为正常完成
              
              // 累加到总运行时长
              this.totalAccumulatedRuntime += totalRunTime;
              this.completedProcesses.set(gameKey, {
                name: processInfo.name,
                runTime: totalRunTime,
-               endTime: endTime
+               endTime: endTime,
+               isSignInTask: processInfo.isSignInTask
              });
              
-             this.autoGame.log(`累计运行时长更新: +${this.formatDuration(totalRunTime / 1000)}, 总计: ${this.formatDuration(this.totalAccumulatedRuntime / 1000)}`);
+             const taskDescription = processInfo.isSignInTask ? '签到脚本' : '进程';
+             this.autoGame.log(`${taskDescription}运行时长统计: +${this.formatDuration(totalRunTime / 1000)}, 累计总时长: ${this.formatDuration(this.totalAccumulatedRuntime / 1000)}`);
            }
            
            // 等待一小段时间后完成
-           await this.autoGame.sleep(3000);
+           await this.autoGame.sleep(2000);
            resolve();
            
          } catch (error) {
@@ -592,7 +640,7 @@ class ProcessMonitor {
   }
 
   /**
-   * 改进的队列处理，增强冲突检测
+   * 改进的队列处理，增强冲突检测和状态提示
    */
   async processQueue() {
     if (this.isExecutingTask || this.taskQueue.length === 0) {
@@ -603,7 +651,9 @@ class ProcessMonitor {
     const ocrStatus = this.isOCRTaskRunning();
     if (ocrStatus.isRunning) {
       const estimatedWaitTime = Math.max(30000, this.calculateSmartWaitTime(ocrStatus.gameKey || 'unknown'));
-      this.autoGame.log(`检测到OCR任务正在运行 (${ocrStatus.processName})，等待 ${Math.floor(estimatedWaitTime/60000)} 分钟后重试...`);
+      this.autoGame.log(`⏳ 检测到任务正在运行 (${ocrStatus.processName})，队列等待中...`);
+      this.autoGame.log(`📋 当前队列: ${this.taskQueue.length} 个任务等待执行`);
+      this.autoGame.log(`⏰ 预计等待时间: ${Math.floor(estimatedWaitTime/60000)} 分钟后重试`);
       
       // 延迟重试，避免冲突
       setTimeout(() => this.processQueue(), Math.min(estimatedWaitTime, 300000)); // 最多等待5分钟
@@ -613,8 +663,21 @@ class ProcessMonitor {
     this.isExecutingTask = true;
     const task = this.taskQueue.shift();
     
+    // 获取游戏配置信息用于显示
+    const gameConfig = this.autoGame.config?.games?.[task.gameKey];
+    const gameName = gameConfig?.name || task.gameKey;
+    
     try {
-      this.autoGame.log(`开始执行任务: ${task.gameKey} (队列剩余: ${this.taskQueue.length})`);
+      this.autoGame.log(`🚀 开始执行任务: ${gameName} (${task.gameKey})`);
+      this.autoGame.log(`📊 队列状态: 当前执行中 | 剩余 ${this.taskQueue.length} 个任务`);
+      
+      if (this.taskQueue.length > 0) {
+        const nextTasks = this.taskQueue.slice(0, 3).map(t => {
+          const nextGameConfig = this.autoGame.config?.games?.[t.gameKey];
+          return nextGameConfig?.name || t.gameKey;
+        });
+        this.autoGame.log(`📝 待执行任务: ${nextTasks.join(' → ')}${this.taskQueue.length > 3 ? ` 等${this.taskQueue.length}个` : ''}`);
+      }
       
       // 记录任务开始时间
       const taskStartTime = Date.now();
@@ -622,20 +685,45 @@ class ProcessMonitor {
       
       // 计算实际执行时间
       const actualExecutionTime = Date.now() - taskStartTime;
-      this.autoGame.log(`任务 ${task.gameKey} 执行完成，实际耗时: ${Math.floor(actualExecutionTime/60000)}分钟`);
+      const executionMinutes = Math.floor(actualExecutionTime / 60000);
+      const executionSeconds = Math.floor((actualExecutionTime % 60000) / 1000);
+      
+      this.autoGame.log(`✅ 任务 ${gameName} 执行完成`);
+      this.autoGame.log(`⏱️  实际耗时: ${executionMinutes > 0 ? `${executionMinutes}分钟` : ''}${executionSeconds}秒`);
       
       task.resolve(result);
       
+      // 如果还有待执行任务，显示等待提示
+      if (this.taskQueue.length > 0) {
+        const nextTask = this.taskQueue[0];
+        const nextGameConfig = this.autoGame.config?.games?.[nextTask.gameKey];
+        const nextGameName = nextGameConfig?.name || nextTask.gameKey;
+        const waitTime = this.calculateSmartWaitTime(nextTask.gameKey);
+        const waitMinutes = Math.floor(waitTime / 60000);
+        
+        this.autoGame.log(`⏳ 准备执行下一个任务: ${nextGameName}`);
+        this.autoGame.log(`⌛ 任务间隔等待: ${waitMinutes}分钟 (防止冲突)`);
+        this.autoGame.log(`📋 队列进度: ${this.taskQueue.length} 个任务待执行`);
+      } else {
+        this.autoGame.log(`🎉 所有任务执行完成！`);
+      }
+      
     } catch (error) {
-      this.autoGame.log(`任务 ${task.gameKey} 执行失败: ${error.message}`);
+      this.autoGame.log(`❌ 任务 ${gameName} 执行失败: ${error.message}`);
+      this.autoGame.log(`📋 继续执行剩余 ${this.taskQueue.length} 个任务...`);
       
       // 直接让任务失败，不再重试
       task.reject(error);
     } finally {
       this.isExecutingTask = false;
+      
       // 只有当队列中还有任务时，才继续处理队列
       if (this.taskQueue.length > 0) {
-        setTimeout(() => this.processQueue(), 3000);
+        const nextTask = this.taskQueue[0];
+        const waitTime = Math.max(3000, this.calculateSmartWaitTime(nextTask.gameKey) / 10); // 缩短等待时间
+        
+        this.autoGame.log(`⏸️  任务间隔等待 ${Math.floor(waitTime/1000)} 秒后继续...`);
+        setTimeout(() => this.processQueue(), waitTime);
       }
     }
   }
@@ -728,7 +816,7 @@ class ProcessMonitor {
   }
 
   /**
-   * 获取监控状态
+   * 获取监控状态 - 增强版本，包含详细的队列和执行状态
    */
   getMonitoringStatus() {
     // 计算当前运行中进程的实时运行时长
@@ -751,7 +839,37 @@ class ProcessMonitor {
         runTime: runTime,
         runTimeFormatted: this.formatDuration(runTime),
         status: info.status || 'running',
-        pid: info.pid
+        pid: info.pid,
+        isSignInTask: info.isSignInTask || false
+      };
+    });
+
+    // 获取当前执行任务信息
+    let currentTask = null;
+    if (this.isExecutingTask && this.taskQueue.length >= 0) {
+      // 如果有正在执行的任务，尝试从进程列表中找到
+      const runningProcess = processesArray.find(p => p.status === 'running');
+      if (runningProcess) {
+        const gameConfig = this.autoGame.config?.games?.[runningProcess.gameKey];
+        currentTask = {
+          gameKey: runningProcess.gameKey,
+          gameName: gameConfig?.name || runningProcess.gameKey,
+          startTime: runningProcess.startTime,
+          runTime: runningProcess.runTime,
+          isSignInTask: runningProcess.isSignInTask
+        };
+      }
+    }
+
+    // 获取队列任务信息
+    const queueTasks = this.taskQueue.map(task => {
+      const gameConfig = this.autoGame.config?.games?.[task.gameKey];
+      return {
+        gameKey: task.gameKey,
+        gameName: gameConfig?.name || task.gameKey,
+        priority: task.priority,
+        timestamp: task.timestamp,
+        estimatedWaitTime: this.calculateSmartWaitTime(task.gameKey)
       };
     });
 
@@ -760,16 +878,24 @@ class ProcessMonitor {
       isMonitoring: this.isMonitoring,
       monitoringStartTime: this.currentMonitoringStartTime,
       runningProcesses: processesArray,
-      taskQueue: this.taskQueue.map(task => ({
-        gameKey: task.gameKey,
-        priority: task.priority,
-        timestamp: task.timestamp
-      })),
+      
+      // 任务队列相关信息
+      taskQueue: queueTasks,
       isExecutingTask: this.isExecutingTask,
-      // 添加累计运行时长信息
+      currentTask: currentTask,
+      queueLength: this.taskQueue.length,
+      
+      // 时长统计
       totalAccumulatedRuntime: this.totalAccumulatedRuntime,
       currentRuntime: currentRuntime,
-      totalRuntime: this.totalAccumulatedRuntime + currentRuntime
+      totalRuntime: this.totalAccumulatedRuntime + currentRuntime,
+      
+      // 状态摘要
+      summary: {
+        hasRunningTasks: processesArray.some(p => p.status === 'running'),
+        hasQueuedTasks: this.taskQueue.length > 0,
+        isIdle: !this.isExecutingTask && this.taskQueue.length === 0 && processesArray.length === 0
+      }
     };
   }
 

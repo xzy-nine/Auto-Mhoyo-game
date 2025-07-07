@@ -631,28 +631,64 @@ class AutoMihoyoApp {
     }
     
     async runAllGames() {
+        const runAllBtn = document.getElementById('runAllBtn');
+        const originalText = runAllBtn?.textContent || '全部运行';
+        
         this.showLoading(true);
+        
+        // 更新按钮状态
+        if (runAllBtn) {
+            runAllBtn.disabled = true;
+            runAllBtn.textContent = '🚀 启动中...';
+        }
+        
         try {
+            // 显示启动提示
+            this.showNotification('开始批量执行所有启用的游戏任务', 'info');
+            
             const result = await window.electronAPI.runAllGames();
             if (result.error) {
                 throw new Error(result.error);
             }
             
             const { summary } = result;
+            
+            // 更新按钮状态为执行中
+            if (runAllBtn) {
+                runAllBtn.textContent = '📋 执行中...';
+            }
+            
             this.showNotification(
-                `批量执行完成: 成功 ${summary.successful}/${summary.total}`, 
-                summary.failed > 0 ? 'warning' : 'success'
+                `✅ 批量任务已启动: ${summary.total} 个任务加入队列`, 
+                'success'
+            );
+            
+            this.showNotification(
+                `📋 请查看右侧任务队列了解执行进度`, 
+                'info'
             );
             
             if (result.errors.length > 0) {
                 result.errors.forEach(error => {
-                    this.showNotification(`${error.gameName}: ${error.error}`, 'error');
+                    this.showNotification(`❌ ${error.gameName}: ${error.error}`, 'error');
                 });
             }
+            
+            // 立即更新一次状态
+            this.updateSidebarProcesses();
+            
         } catch (error) {
-            this.showNotification(`批量执行失败: ${error.message}`, 'error');
+            this.showNotification(`❌ 批量执行失败: ${error.message}`, 'error');
         } finally {
             this.showLoading(false);
+            
+            // 恢复按钮状态
+            if (runAllBtn) {
+                setTimeout(() => {
+                    runAllBtn.disabled = false;
+                    runAllBtn.textContent = originalText;
+                }, 3000); // 3秒后恢复按钮
+            }
         }
     }
 
@@ -787,6 +823,7 @@ class AutoMihoyoApp {
         this.updateRecentActivity();
         this.updateSignInDetails();
         this.updateRealTimeLogs(); // 新增：更新实时日志显示
+        this.updateQueueStatus(); // 新增：更新队列状态
     }
     
     updateStatusCards() {
@@ -830,6 +867,9 @@ class AutoMihoyoApp {
         const section = document.getElementById('sidebarProcessSection');
         const processes = this.runningProcesses || {};
         
+        // 更新队列状态显示
+        this.updateQueueStatus();
+        
         if (Object.keys(processes).length === 0) {
             section.classList.remove('show');
             return;
@@ -850,40 +890,61 @@ class AutoMihoyoApp {
                 process.status === 'running'
             );
             
+            // 特别处理签到任务的显示
+            const isSignInTask = process.isSignInTask || 
+                                key === 'mihoyoBBSTools' || 
+                                (process.processName && process.processName.includes('python.exe'));
+            
             if (isActive && process.startTime) {
-                const runTime = Math.max(0, Date.now() - process.startTime); // 确保时间不为负数
+                const runTime = Math.max(0, Date.now() - process.startTime);
                 runTimeDisplay = this.formatDuration(runTime);
                 statusClass = 'running';
-                statusText = process.status || '运行中';
-                actionButton = `<button class="btn btn-sm btn-danger" onclick="app.stopProcess('${key}')">停止</button>`;
                 
-                // 调试信息：定期检查时间是否有异常跳变
-                if (key === 'mihoyoBBSTools' && runTime > 0) {
-                    const lastRunTime = process._lastRunTime || 0;
-                    if (lastRunTime > 0 && runTime < lastRunTime - 5000) { // 如果时间倒退超过5秒
-                        console.warn(`检测到时间跳变: ${key}, 上次: ${lastRunTime}ms, 当前: ${runTime}ms, startTime: ${process.startTime}`);
-                    }
-                    process._lastRunTime = runTime;
+                if (isSignInTask) {
+                    statusText = '签到执行中';
+                    // 签到任务显示秒数，更准确
+                    const seconds = Math.floor(runTime / 1000);
+                    runTimeDisplay = `${seconds}秒`;
+                } else {
+                    statusText = process.status || '运行中';
                 }
+                
+                actionButton = `<button class="btn btn-sm btn-danger" onclick="app.stopProcess('${key}')">停止</button>`;
             } else if (process.status === 'stopped' && process.startTime && process.endTime) {
                 const totalRunTime = process.endTime - process.startTime;
-                runTimeDisplay = `总共运行了 ${this.formatDuration(totalRunTime)}`;
+                if (isSignInTask) {
+                    const seconds = Math.floor(totalRunTime / 1000);
+                    runTimeDisplay = `签到完成，用时 ${seconds}秒`;
+                } else {
+                    runTimeDisplay = `总共运行了 ${this.formatDuration(totalRunTime)}`;
+                }
                 statusClass = 'stopped';
                 statusText = '已停止';
-            } else if (process.status === '签到完成' || process.status === '执行完成') {
+            } else if (process.status === '签到完成' || process.status === '执行完成' || process.status === 'completed') {
                 if (process.startTime) {
                     const totalRunTime = (process.endTime || Date.now()) - process.startTime;
-                    runTimeDisplay = `运行了 ${this.formatDuration(totalRunTime)}`;
+                    if (isSignInTask) {
+                        const seconds = Math.floor(totalRunTime / 1000);
+                        runTimeDisplay = `用时 ${seconds}秒`;
+                    } else {
+                        runTimeDisplay = `运行了 ${this.formatDuration(totalRunTime)}`;
+                    }
                 }
                 statusClass = 'completed';
-                statusText = process.status;
+                statusText = isSignInTask ? '签到完成' : '执行完成';
                 actionButton = '<span class="status-text">✅ 已完成</span>';
             }
+            
+            const taskType = isSignInTask ? '签到' : '游戏';
+            const displayName = this.config.games[key]?.name || key;
             
             return `
                 <div class="process-item-sidebar">
                     <div class="process-info-sidebar">
-                        <div class="process-name-sidebar">${process.name || this.config.games[key]?.name || key}</div>
+                        <div class="process-name-sidebar">
+                            ${displayName} 
+                            <span class="task-type-badge ${isSignInTask ? 'sign-in' : 'game'}">${taskType}</span>
+                        </div>
                         <div class="process-details-sidebar">
                             ${statusText}
                             ${isActive ? ` | ${runTimeDisplay}` : ''}
@@ -952,6 +1013,99 @@ class AutoMihoyoApp {
         container.scrollTop = 0;
     }
     
+    // 更新队列状态显示
+    updateQueueStatus() {
+        const queueContainer = document.getElementById('queueStatus');
+        if (!queueContainer) return;
+        
+        // 从全局状态获取队列信息（这里需要定期从后端获取）
+        this.getQueueStatusFromBackend().then(status => {
+            if (!status || status.error) return;
+            
+            const { currentTask, queueTasks, isExecutingTask, queueLength } = status;
+            
+            let queueHtml = '';
+            
+            if (isExecutingTask && currentTask) {
+                // 显示当前执行任务
+                const gameName = currentTask.gameName || currentTask.gameKey;
+                const runTime = currentTask.runTime ? this.formatDuration(currentTask.runTime * 1000) : '启动中';
+                const taskType = currentTask.isSignInTask ? '签到任务' : '游戏任务';
+                
+                queueHtml += `
+                    <div class="queue-current-task">
+                        <div class="task-header">
+                            <span class="task-status running">🚀 正在执行</span>
+                            <span class="task-type">${taskType}</span>
+                        </div>
+                        <div class="task-name">${gameName}</div>
+                        <div class="task-runtime">运行时间: ${runTime}</div>
+                    </div>
+                `;
+            }
+            
+            if (queueLength > 0) {
+                // 显示等待队列
+                queueHtml += `
+                    <div class="queue-waiting-tasks">
+                        <div class="queue-header">
+                            <span class="queue-count">📋 等待执行: ${queueLength} 个任务</span>
+                        </div>
+                        <div class="queue-list">
+                `;
+                
+                queueTasks.slice(0, 3).forEach((task, index) => {
+                    const waitTime = Math.floor(task.estimatedWaitTime / 60000);
+                    queueHtml += `
+                        <div class="queue-item">
+                            <span class="queue-position">${index + 1}.</span>
+                            <span class="queue-task-name">${task.gameName}</span>
+                            <span class="queue-estimate">~${waitTime}分钟</span>
+                        </div>
+                    `;
+                });
+                
+                if (queueLength > 3) {
+                    queueHtml += `<div class="queue-more">...还有${queueLength - 3}个任务</div>`;
+                }
+                
+                queueHtml += '</div></div>';
+            }
+            
+            if (!isExecutingTask && queueLength === 0) {
+                queueHtml = `
+                    <div class="queue-idle">
+                        <div class="idle-status">✅ 所有任务已完成</div>
+                        <div class="idle-message">点击"全部运行"开始批量执行任务</div>
+                    </div>
+                `;
+            }
+            
+            queueContainer.innerHTML = queueHtml;
+        }).catch(err => {
+            console.error('获取队列状态失败:', err);
+        });
+    }
+    
+    // 从后端获取队列状态
+    async getQueueStatusFromBackend() {
+        try {
+            const result = await window.electronAPI.getProcessStatus();
+            if (result && !result.error) {
+                return {
+                    currentTask: result.currentTask,
+                    queueTasks: result.taskQueue || [],
+                    isExecutingTask: result.isExecutingTask,
+                    queueLength: result.queueLength || 0
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('获取后端队列状态失败:', error);
+            return null;
+        }
+    }
+
     async quickStartGame(gameKey) {
         try {
             const game = this.config.games[gameKey];
@@ -1145,11 +1299,14 @@ class AutoMihoyoApp {
                     
                     this.runningProcesses = newProcesses;
                     this.updateStatusPanel();
+                    
+                    // 更新侧边栏进程状态（包含队列状态）
+                    this.updateSidebarProcesses();
                 }
             } catch (error) {
                 console.error('获取进程状态失败:', error);
             }
-        }, 3000); // 每3秒检查一次
+        }, 2000); // 改为每2秒检查一次，更及时显示状态变化
     }
     
     async loadLogs() {
