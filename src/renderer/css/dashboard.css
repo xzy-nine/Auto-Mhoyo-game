@@ -36,11 +36,68 @@
     gap: 0.8rem;
 }
 
-.quick-actions .btn {
+.quick-actions-hint {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    opacity: 0.8;
+}
+
+/* 拖拽排序相关样式 */
+.quick-actions.sortable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.quick-action-item {
+    cursor: grab;
+    position: relative;
+    transition: all 0.3s ease;
+    touch-action: none;
+}
+
+.quick-action-item:active {
+    cursor: grabbing;
+}
+
+.quick-action-item.dragging {
+    opacity: 0.7;
+    transform: scale(1.05) rotate(2deg);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.quick-action-item.drag-over {
+    transform: scale(0.95);
+    border: 2px dashed var(--primary-color);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.quick-action-item .btn {
+    width: 100%;
     padding: 0.8rem 1rem;
     font-size: 0.9rem;
     border-radius: 8px;
     transition: all 0.3s ease;
+    position: relative;
+}
+
+.quick-action-item .btn::before {
+    content: '⋮⋮';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: -2px;
+    line-height: 1;
+}
+
+.quick-action-item .btn {
+    padding-left: 30px;
 }
 
 .quick-actions .btn:hover {
@@ -348,4 +405,47 @@
 /* 确保日志条目不会被截断 */
 .realtime-log-container .log-entry:last-child {
     margin-bottom: 0;
+}
+
+/* 占位符样式 */
+.quick-action-item.placeholder {
+    opacity: 0.6;
+    border: 2px dashed var(--primary-color);
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+}
+
+.quick-action-item.placeholder .btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--primary-color) !important;
+}
+
+/* 空状态样式 */
+.quick-actions .empty-state {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    .quick-action-item {
+        touch-action: manipulation;
+    }
+    
+    .quick-action-item .btn::before {
+        font-size: 16px;
+    }
+    
+    .quick-actions-hint {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 6px;
+        border-left: 3px solid var(--primary-color);
+    }
 }

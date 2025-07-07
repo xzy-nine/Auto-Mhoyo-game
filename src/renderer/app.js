@@ -26,6 +26,7 @@ class AutoMihoyoApp {
             this.setupNavigation();
             this.setupRealtimeLogListener(); // 设置实时日志监听
             this.renderGameCards();
+            this.renderQuickActions(); // 渲染快捷启动按钮
             this.updateStatusPanel();
             // 自动验证配置状态
             await this.autoValidateConfig();
@@ -97,6 +98,7 @@ class AutoMihoyoApp {
             }
             this.showNotification('配置保存成功', 'success');
             this.updateStatusPanel();
+            this.renderQuickActions(); // 重新渲染快捷启动按钮
         } catch (error) {
             this.showNotification(`保存配置失败: ${error.message}`, 'error');
         } finally {
@@ -128,12 +130,6 @@ class AutoMihoyoApp {
         // 日志页面事件
         document.getElementById('refreshLogsBtn').addEventListener('click', () => this.refreshLogs());
         document.getElementById('clearLogsBtn').addEventListener('click', () => this.clearLogs());
-        
-        // 仪表盘快捷启动按钮 - 修复配置键名映射
-        document.getElementById('quickStartMihoyo').addEventListener('click', () => this.quickStartGame('mihoyoBBSTools'));
-        document.getElementById('quickStartGenshin').addEventListener('click', () => this.quickStartGame('betterGenshinImpact'));
-        document.getElementById('quickStartStarRail').addEventListener('click', () => this.quickStartGame('march7thAssistant'));
-        document.getElementById('quickStartZenless').addEventListener('click', () => this.quickStartGame('zenlessZoneZero'));
         
         // 侧边栏切换按钮事件
         document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebarManually());
@@ -629,7 +625,12 @@ class AutoMihoyoApp {
             }, 800); // 800ms 后进入执行中状态
             
             console.log('⏳ 开始调用后端 API');
-            const result = await window.electronAPI.runAllGames();
+            
+            // 获取按顺序排列的游戏键
+            const enabledGames = this.getEnabledGamesInOrder();
+            const gameKeys = enabledGames.map(item => item.key);
+            
+            const result = await window.electronAPI.runAllGames(gameKeys);
             console.log('✅ 后端 API 调用完成');
             
             if (result.error) {
@@ -1527,7 +1528,7 @@ class AutoMihoyoApp {
 
     async clearLogs() {
         if (confirm('确定要清空所有日志吗？此操作不可撤销。')) {
-            // 这里可以添加清空日志的API调用
+            // 这里可以添加清
             this.showNotification('日志清空功能待实现', 'warning');
         }
     }
@@ -1853,6 +1854,260 @@ class AutoMihoyoApp {
                 </div>
             </div>
         `).join('');
+    }
+
+    // 渲染快捷启动按钮
+    renderQuickActions() {
+        const quickActionsContainer = document.getElementById('quickActions');
+        if (!quickActionsContainer) return;
+
+        // 获取启用的游戏配置
+        const enabledGames = this.getEnabledGamesInOrder();
+        
+        if (enabledGames.length === 0) {
+            quickActionsContainer.innerHTML = '<div class="empty-state">暂无启用的游戏配置</div>';
+            return;
+        }
+
+        // 渲染快捷启动按钮
+        quickActionsContainer.innerHTML = enabledGames.map(({ key, game }) => `
+            <div class="quick-action-item" data-game-key="${key}" draggable="true">
+                <button class="btn btn-primary" data-game-key="${key}">
+                    ${game.name}
+                </button>
+            </div>
+        `).join('');
+
+        // 设置拖拽事件监听器
+        this.setupDragAndDrop();
+        
+        // 设置按钮点击事件
+        quickActionsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn[data-game-key]');
+            if (btn) {
+                const gameKey = btn.getAttribute('data-game-key');
+                this.quickStartGame(gameKey);
+            }
+        });
+    }
+
+    // 获取按顺序排列的启用游戏
+    getEnabledGamesInOrder() {
+        if (!this.config || !this.config.games) return [];
+
+        // 获取游戏顺序配置，如果不存在则使用默认顺序
+        const gameOrder = this.config.gameOrder || [
+            'mihoyoBBSTools',
+            'betterGenshinImpact', 
+            'march7thAssistant',
+            'zenlessZoneZero'
+        ];
+
+        const enabledGames = [];
+        
+        // 按照配置的顺序添加启用的游戏
+        gameOrder.forEach(key => {
+            const game = this.config.games[key];
+            if (game && game.enabled) {
+                enabledGames.push({ key, game });
+            }
+        });
+
+        // 添加不在顺序配置中但启用的游戏
+        Object.keys(this.config.games).forEach(key => {
+            if (!gameOrder.includes(key)) {
+                const game = this.config.games[key];
+                if (game && game.enabled) {
+                    enabledGames.push({ key, game });
+                }
+            }
+        });
+
+        return enabledGames;
+    }
+
+    // 设置拖拽和排序功能
+    setupDragAndDrop() {
+        const quickActionsContainer = document.getElementById('quickActions');
+        if (!quickActionsContainer) return;
+
+        let draggedElement = null;
+        let placeholder = null;
+        let touchStartPos = null;
+        let touchCurrentPos = null;
+
+        // 鼠标拖拽事件
+        quickActionsContainer.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.quick-action-item');
+            if (!item) return;
+
+            draggedElement = item;
+            item.classList.add('dragging');
+            
+            // 创建占位符
+            placeholder = document.createElement('div');
+            placeholder.className = 'quick-action-item placeholder';
+            placeholder.innerHTML = '<div class="btn btn-secondary" style="opacity: 0.5; border: 2px dashed #666;">拖拽到此处</div>';
+            
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', item.outerHTML);
+        });
+
+        quickActionsContainer.addEventListener('dragend', (e) => {
+            const item = e.target.closest('.quick-action-item');
+            if (item) {
+                item.classList.remove('dragging');
+            }
+            
+            if (placeholder && placeholder.parentNode) {
+                placeholder.remove();
+            }
+            
+            draggedElement = null;
+            placeholder = null;
+        });
+
+        quickActionsContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const item = e.target.closest('.quick-action-item');
+            if (!item || item === draggedElement) return;
+
+            const rect = item.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                item.parentNode.insertBefore(placeholder, item);
+            } else {
+                item.parentNode.insertBefore(placeholder, item.nextSibling);
+            }
+        });
+
+        quickActionsContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            
+            if (!draggedElement || !placeholder) return;
+
+            placeholder.parentNode.replaceChild(draggedElement, placeholder);
+            this.saveGameOrder();
+            draggedElement.classList.remove('dragging');
+        });
+
+        // 触摸事件支持
+        quickActionsContainer.addEventListener('touchstart', (e) => {
+            const item = e.target.closest('.quick-action-item');
+            if (!item) return;
+
+            touchStartPos = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY
+            };
+            
+            // 长按检测
+            const longPressTimer = setTimeout(() => {
+                if (touchCurrentPos && this.getDistance(touchStartPos, touchCurrentPos) < 10) {
+                    e.preventDefault();
+                    this.startTouchDrag(item, e.touches[0]);
+                }
+            }, 500); // 500ms长按
+            
+            item.addEventListener('touchmove', (moveEvent) => {
+                touchCurrentPos = {
+                    x: moveEvent.touches[0].clientX,
+                    y: moveEvent.touches[0].clientY
+                };
+            }, { once: true });
+            
+            item.addEventListener('touchend', () => {
+                clearTimeout(longPressTimer);
+            }, { once: true });
+        });
+    }
+
+    // 触摸拖拽开始
+    startTouchDrag(item, touch) {
+        const quickActionsContainer = document.getElementById('quickActions');
+        
+        draggedElement = item;
+        item.classList.add('dragging');
+        
+        placeholder = document.createElement('div');
+        placeholder.className = 'quick-action-item placeholder';
+        placeholder.innerHTML = '<div class="btn btn-secondary" style="opacity: 0.5; border: 2px dashed #666;">拖拽到此处</div>';
+        
+        const clone = item.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.zIndex = '1000';
+        clone.style.opacity = '0.8';
+        clone.style.pointerEvents = 'none';
+        clone.style.transform = 'scale(1.05) rotate(2deg)';
+        document.body.appendChild(clone);
+        
+        const moveClone = (e) => {
+            const touch = e.touches[0];
+            clone.style.left = (touch.clientX - 75) + 'px';
+            clone.style.top = (touch.clientY - 25) + 'px';
+            
+            // 检测放置位置
+            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetItem = targetElement?.closest('.quick-action-item');
+            
+            if (targetItem && targetItem !== draggedElement && !targetItem.classList.contains('placeholder')) {
+                const rect = targetItem.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                if (touch.clientY < midY) {
+                    targetItem.parentNode.insertBefore(placeholder, targetItem);
+                } else {
+                    targetItem.parentNode.insertBefore(placeholder, targetItem.nextSibling);
+                }
+            }
+        };
+        
+        const endTouch = () => {
+            document.removeEventListener('touchmove', moveClone);
+            document.removeEventListener('touchend', endTouch);
+            
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.replaceChild(draggedElement, placeholder);
+                this.saveGameOrder();
+            }
+            
+            draggedElement.classList.remove('dragging');
+            clone.remove();
+            draggedElement = null;
+            placeholder = null;
+        };
+        
+        document.addEventListener('touchmove', moveClone);
+        document.addEventListener('touchend', endTouch);
+    }
+
+    // 计算两点间距离
+    getDistance(pos1, pos2) {
+        const dx = pos1.x - pos2.x;
+        const dy = pos1.y - pos2.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // 保存游戏顺序配置
+    async saveGameOrder() {
+        const quickActionsContainer = document.getElementById('quickActions');
+        if (!quickActionsContainer) return;
+
+        const items = quickActionsContainer.querySelectorAll('.quick-action-item[data-game-key]');
+        const newOrder = Array.from(items).map(item => item.getAttribute('data-game-key'));
+        
+        // 更新配置
+        this.config.gameOrder = newOrder;
+        
+        try {
+            await this.saveConfig();
+            this.showNotification('游戏执行顺序已保存', 'success');
+        } catch (error) {
+            this.showNotification(`保存顺序失败: ${error.message}`, 'error');
+        }
     }
 
     formatDuration(ms) {

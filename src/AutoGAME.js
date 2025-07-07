@@ -1237,16 +1237,26 @@ class AutoGAME {
   /**
    * 安全的批量游戏运行方法（智能等待）
    */
-  async runAllGamesSafe() {
+  async runAllGamesSafe(gameOrder = null) {
     try {
       const config = await this.getConfig();
-      const enabledGames = Object.entries(config.games).filter(([key, game]) => game.enabled);
+      
+      let enabledGames;
+      if (gameOrder && Array.isArray(gameOrder)) {
+        // 使用指定的游戏顺序
+        enabledGames = gameOrder
+          .filter(gameKey => config.games[gameKey] && config.games[gameKey].enabled)
+          .map(gameKey => [gameKey, config.games[gameKey]]);
+      } else {
+        // 使用默认顺序（所有启用的游戏）
+        enabledGames = Object.entries(config.games).filter(([key, game]) => game.enabled);
+      }
       
       if (enabledGames.length === 0) {
         throw new Error('没有启用任何游戏');
       }
 
-      this.log(`开始批量执行 ${enabledGames.length} 个游戏任务`);
+      this.log(`开始批量执行 ${enabledGames.length} 个游戏任务，顺序: ${enabledGames.map(([key, game]) => game.name).join(' -> ')}`);
       
       // 先将所有任务添加到队列中，不等待执行结果
       const taskPromises = [];

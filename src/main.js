@@ -213,9 +213,9 @@ class MainProcess {
     });
 
     // 执行所有游戏 - 使用安全版本
-    ipcMain.handle('run-all-games', async () => {
+    ipcMain.handle('run-all-games', async (event, gameOrder = null) => {
       try {
-        const result = await this.autoGame.runAllGamesSafe();
+        const result = await this.autoGame.runAllGamesSafe(gameOrder);
         return result;
       } catch (error) {
         return { error: error.message };
