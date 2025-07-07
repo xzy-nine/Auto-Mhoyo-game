@@ -182,6 +182,11 @@
     color: var(--color-info);
 }
 
+/* 确保状态项标签在浅色主题下可见，通过设置标签文本颜色 */
+.status-item span:not(.status-number) {
+    color: var(--text-dark);
+}
+
 /* 状态概览 */
 .status-overview {
     margin-top: 1rem;
