@@ -19,6 +19,10 @@ class ProcessMonitor {
     // 任务队列管理
     this.taskQueue = [];
     this.isExecutingTask = false;
+    
+    // 累计运行时长（毫秒）
+    this.totalAccumulatedRuntime = 0;
+    this.completedProcesses = new Map(); // 存储已完成进程的运行时长
   }
 
   /**
@@ -26,6 +30,10 @@ class ProcessMonitor {
    */
   async initProcessMonitoring() {
     try {
+      // 初始化累计时长（本次启动周期）
+      this.totalAccumulatedRuntime = 0;
+      this.completedProcesses = new Map();
+      
       // 等待一小段时间让其他初始化完成
       setTimeout(async () => {
         try {
@@ -464,6 +472,16 @@ class ProcessMonitor {
            if (processInfo) {
              processInfo.endTime = endTime;
              processInfo.status = 'completed'; // 标记为正常完成，而不是简单的停止
+             
+             // 累加到总运行时长
+             this.totalAccumulatedRuntime += totalRunTime;
+             this.completedProcesses.set(gameKey, {
+               name: processInfo.name,
+               runTime: totalRunTime,
+               endTime: endTime
+             });
+             
+             this.autoGame.log(`累计运行时长更新: +${this.formatDuration(totalRunTime / 1000)}, 总计: ${this.formatDuration(this.totalAccumulatedRuntime / 1000)}`);
            }
            
            // 等待一小段时间后完成
@@ -628,6 +646,8 @@ class ProcessMonitor {
   async stopAllProcesses() {
     try {
       let stoppedCount = 0;
+      const endTime = Date.now();
+      
       for (const [gameKey, processInfo] of this.runningProcesses.entries()) {
         try {
           if (processInfo.childProcess && !processInfo.childProcess.killed) {
@@ -635,9 +655,26 @@ class ProcessMonitor {
             stoppedCount++;
             this.autoGame.log(`停止进程: ${gameKey} (PID: ${processInfo.childProcess.pid})`);
           }
+          
+          // 累加运行时长
+          if (processInfo.startTime && !processInfo.endTime) {
+            const runTime = endTime - processInfo.startTime;
+            this.totalAccumulatedRuntime += runTime;
+            this.completedProcesses.set(gameKey, {
+              name: processInfo.name,
+              runTime: runTime,
+              endTime: endTime
+            });
+            
+            this.autoGame.log(`进程 ${gameKey} 运行时长: ${this.formatDuration(runTime / 1000)}`);
+          }
         } catch (error) {
           this.autoGame.log(`停止进程失败 ${gameKey}: ${error.message}`);
         }
+      }
+      
+      if (stoppedCount > 0) {
+        this.autoGame.log(`累计运行时长更新，总计: ${this.formatDuration(this.totalAccumulatedRuntime / 1000)}`);
       }
       
       this.runningProcesses.clear();
@@ -665,9 +702,24 @@ class ProcessMonitor {
         );
       }
       
-      // 标记进程为已停止
-      processInfo.endTime = Date.now();
+      // 标记进程为已停止，并累加运行时长
+      const endTime = Date.now();
+      processInfo.endTime = endTime;
       processInfo.status = 'stopped';
+      
+      // 计算运行时长并累加
+      if (processInfo.startTime) {
+        const runTime = endTime - processInfo.startTime;
+        this.totalAccumulatedRuntime += runTime;
+        this.completedProcesses.set(processKey, {
+          name: processInfo.name,
+          runTime: runTime,
+          endTime: endTime
+        });
+        
+        this.autoGame.log(`进程 ${processKey} 被手动停止，运行时长: ${this.formatDuration(runTime / 1000)}`);
+        this.autoGame.log(`累计运行时长更新: 总计: ${this.formatDuration(this.totalAccumulatedRuntime / 1000)}`);
+      }
       
       return { success: true };
     } catch (error) {
@@ -679,25 +731,45 @@ class ProcessMonitor {
    * 获取监控状态
    */
   getMonitoringStatus() {
-    return {
-      currentlyMonitoring: this.currentMonitoringProcess,
-      isMonitoring: this.isMonitoring,
-      monitoringStartTime: this.currentMonitoringStartTime,
-      runningProcesses: Array.from(this.runningProcesses.entries()).map(([key, info]) => ({
+    // 计算当前运行中进程的实时运行时长
+    let currentRuntime = 0;
+    const processesArray = Array.from(this.runningProcesses.entries()).map(([key, info]) => {
+      const runTime = Math.floor((Date.now() - info.startTime) / 1000);
+      const runTimeMs = Date.now() - info.startTime;
+      
+      // 如果进程正在运行，累加到当前运行时长
+      if (!info.endTime) {
+        currentRuntime += runTimeMs;
+      }
+      
+      return {
         gameKey: key,
         name: info.name,
         processName: info.processName,
         startTime: info.startTime,
-        runTime: Math.floor((Date.now() - info.startTime) / 1000),
-        runTimeFormatted: this.formatDuration((Date.now() - info.startTime) / 1000),
+        endTime: info.endTime,
+        runTime: runTime,
+        runTimeFormatted: this.formatDuration(runTime),
+        status: info.status || 'running',
         pid: info.pid
-      })),
+      };
+    });
+
+    return {
+      currentlyMonitoring: this.currentMonitoringProcess,
+      isMonitoring: this.isMonitoring,
+      monitoringStartTime: this.currentMonitoringStartTime,
+      runningProcesses: processesArray,
       taskQueue: this.taskQueue.map(task => ({
         gameKey: task.gameKey,
         priority: task.priority,
         timestamp: task.timestamp
       })),
-      isExecutingTask: this.isExecutingTask
+      isExecutingTask: this.isExecutingTask,
+      // 添加累计运行时长信息
+      totalAccumulatedRuntime: this.totalAccumulatedRuntime,
+      currentRuntime: currentRuntime,
+      totalRuntime: this.totalAccumulatedRuntime + currentRuntime
     };
   }
 

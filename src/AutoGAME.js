@@ -780,7 +780,25 @@ class AutoGAME {
   }
   
   getProcessStatus() {
-    return this.processMonitor.getMonitoringStatus();
+    const monitoringStatus = this.processMonitor.getMonitoringStatus();
+    
+    // 将后端的进程数据转换为前端兼容的格式
+    const processes = {};
+    monitoringStatus.runningProcesses.forEach(process => {
+      processes[process.gameKey] = {
+        name: process.name,
+        processName: process.processName,
+        startTime: process.startTime,
+        endTime: process.endTime,
+        status: process.status,
+        pid: process.pid
+      };
+    });
+    
+    return {
+      ...monitoringStatus,
+      processes: processes
+    };
   }
   
   async getSignInDetails() {

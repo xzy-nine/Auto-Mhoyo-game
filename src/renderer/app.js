@@ -8,9 +8,8 @@ class AutoMihoyoApp {
         this.signInDetails = {}; // 签到详情
         this.realtimeLogs = {}; // 实时日志
         this.logUpdateTimeout = null; // 日志更新节流器
-        this.runtimeStartTime = Date.now();
-        this.totalScriptRuntime = 0; // 总脚本运行时长（毫秒）
-        this.scriptStartTimes = {}; // 脚本开始时间记录
+        // 移除前端时长统计：this.totalScriptRuntime = 0; 
+        // 移除前端时长统计：this.scriptStartTimes = {}; 
         
         // 初始化奖励解析器
         this.rewardParser = new RewardParser();
@@ -366,13 +365,13 @@ class AutoMihoyoApp {
                 this.showNotification(`正在切换到仪表盘显示 ${game.name} 的执行状态`, 'info');
             }
             
-            // 添加运行中进程到仪表盘状态
-            this.runningProcesses[gameKey] = {
-                name: game.name,
-                startTime: Date.now(),
-                status: '正在启动...'
-            };
-            this.updateDashboard();
+            // 移除前端进程状态管理，改为依赖后端数据
+            // this.runningProcesses[gameKey] = {
+            //     name: game.name,
+            //     startTime: Date.now(),
+            //     status: '正在启动...'
+            // };
+            // this.updateDashboard();
             
             this.addActivity(`启动 ${game.name}`, 'info', gameKey);
             this.showNotification(`正在启动 ${game.name}...`, 'info');
@@ -384,18 +383,18 @@ class AutoMihoyoApp {
                 throw new Error(result.error);
             }
             
-            // 同步并累加到总运行时长
-            this.totalScriptRuntime += result.duration;
+            // 移除前端时长统计，使用后端的时长管理
+            // this.totalScriptRuntime += result.duration;
 
-            // 对于签到类任务，不立即移除进程状态，而是等待真正完成
-            if (gameKey === 'mihoyoBBSTools') {
-                // 签到类任务保持进程状态，等待实时日志确认完成
-                console.log('签到任务主进程完成，但保持状态直到确认真正完成');
-            } else {
-                // 非签到类任务立即移除进程状态
-                delete this.runningProcesses[gameKey];
-                this.updateDashboard();
-            }
+            // 移除前端进程状态管理，后端会自动管理进程生命周期
+            // if (gameKey === 'mihoyoBBSTools') {
+            //     // 签到类任务保持进程状态，等待实时日志确认完成
+            //     console.log('签到任务主进程完成，但保持状态直到确认真正完成');
+            // } else {
+            //     // 非签到类任务立即移除进程状态
+            //     delete this.runningProcesses[gameKey];
+            //     this.updateDashboard();
+            // }
             
             this.addActivity(`${game.name} 执行完成，耗时: ${result.duration}ms`, 'success');
             this.showNotification(`${result.gameName || game.name} 执行完成，耗时: ${result.duration}ms`, 'success');
@@ -429,44 +428,8 @@ class AutoMihoyoApp {
         const game = this.config.games[gameKey];
         
         return new Promise((resolve, reject) => {
-            // 记录脚本开始时间用于累计总运行时长
-            if (!this.scriptStartTimes[gameKey]) {
-                this.scriptStartTimes[gameKey] = Date.now();
-            }
-            // 设置状态更新间隔
-            const statusUpdateInterval = setInterval(() => {
-                // 对于签到类任务，特殊处理
-                if (gameKey === 'mihoyoBBSTools') {
-                    // 如果进程状态不存在但有活跃日志，重新创建状态
-                    if (!this.runningProcesses[gameKey] && this.isSignInStillRunning(gameKey)) {
-                        // 尝试从日志中获取更准确的开始时间
-                        const originalStartTime = this.getSignInOriginalStartTime(gameKey);
-                        this.runningProcesses[gameKey] = {
-                            name: this.config.games[gameKey]?.name || '米游社签到工具',
-                            startTime: originalStartTime || (Date.now() - 60000), // 使用原始开始时间或默认1分钟前
-                            status: '签到进行中...',
-                            lastActivityTime: Date.now()
-                        };
-                        console.log('状态更新间隔中重新创建签到进程状态');
-                    }
-                    
-                    if (this.runningProcesses[gameKey]) {
-                        if (this.isSignInStillRunning(gameKey)) {
-                            this.runningProcesses[gameKey].status = '签到进行中...';
-                        } else if (this.runningProcesses[gameKey].status !== '等待签到完成...' && 
-                                  this.runningProcesses[gameKey].status !== '签到完成') {
-                            this.runningProcesses[gameKey].status = '等待签到完成...';
-                        }
-                        this.updateRealTimeProcesses();
-                    }
-                } else {
-                    // 普通任务的状态更新
-                    if (this.runningProcesses[gameKey]) {
-                        this.runningProcesses[gameKey].status = '正在执行...';
-                        this.updateRealTimeProcesses();
-                    }
-                }
-            }, 1000);
+            // 移除前端时长统计和状态管理，后端会管理
+            // 前端只负责日志收集和结果处理
             
             // 启动实时日志收集
             this.collectRealTimeLog(gameKey, `开始执行: ${game.name}`);
@@ -474,31 +437,21 @@ class AutoMihoyoApp {
             // 调用实际的游戏运行方法
             window.electronAPI.runGame(gameKey)
                 .then(result => {
-                    // 对于签到类任务，不立即清除状态，等待签到完全结束
+                    // 对于签到类任务，处理特殊逻辑
                     if (gameKey === 'mihoyoBBSTools') {
-                        this.handleSignInCompletion(gameKey, result, statusUpdateInterval, resolve, reject);
+                        this.handleSignInCompletion(gameKey, result, null, resolve, reject);
                     } else {
-                        clearInterval(statusUpdateInterval);
                         this.handleNormalGameCompletion(gameKey, result, resolve);
                     }
                 })
                 .catch(error => {
-                    clearInterval(statusUpdateInterval);
-                    
                     // 收集错误日志
                     this.collectRealTimeLog(gameKey, `执行失败: ${error.message}`);
-                    
-                    // 更新错误状态
-                    if (this.runningProcesses[gameKey]) {
-                        this.runningProcesses[gameKey].status = '执行失败';
-                        this.updateRealTimeProcesses();
-                    }
-                    
                     reject(error);
                 });
         });
     }
-    
+
     // 处理签到任务完成
     handleSignInCompletion(gameKey, result, statusUpdateInterval, resolve, reject) {
         console.log('处理签到任务完成:', {
@@ -519,20 +472,21 @@ class AutoMihoyoApp {
         
         this.collectRealTimeLog(gameKey, `主进程执行完成，等待签到子任务完成...`);
         
+        // 移除前端进程状态管理，由后端管理进程状态
         // 确保进程状态存在且更新为等待签到完成，保留原始开始时间
-        if (!this.runningProcesses[gameKey]) {
-            // 如果进程状态已被删除，重新创建
-            this.runningProcesses[gameKey] = {
-                name: this.config.games[gameKey]?.name || gameKey,
-                status: '等待签到完成...',
-                startTime: Date.now() - result.duration, // 回溯开始时间
-                pid: null
-            };
-        } else {
-            // 保留原始开始时间，只更新状态
-            this.runningProcesses[gameKey].status = '等待签到完成...';
-        }
-        this.updateRealTimeProcesses();
+        // if (!this.runningProcesses[gameKey]) {
+        //     // 如果进程状态已被删除，重新创建
+        //     this.runningProcesses[gameKey] = {
+        //         name: this.config.games[gameKey]?.name || gameKey,
+        //         status: '等待签到完成...',
+        //         startTime: Date.now() - result.duration, // 回溯开始时间
+        //         pid: null
+        //     };
+        // } else {
+        //     // 保留原始开始时间，只更新状态
+        //     this.runningProcesses[gameKey].status = '等待签到完成...';
+        // }
+        // this.updateRealTimeProcesses();
         
         // 等待签到真正完成（通过检测日志输出判断）
         let waitCount = 0;
@@ -541,48 +495,47 @@ class AutoMihoyoApp {
         const waitForSignInComplete = () => {
             waitCount++;
             
-            // 确保进程状态还存在，如果被意外删除则重新创建，但保留原始时间戳
-            if (!this.runningProcesses[gameKey]) {
-                // 尝试获取原始开始时间
-                const originalStartTime = this.getSignInOriginalStartTime(gameKey);
-                this.runningProcesses[gameKey] = {
-                    name: this.config.games[gameKey]?.name || gameKey,
-                    status: '签到进行中...',
-                    startTime: originalStartTime || (Date.now() - result.duration - waitCount * 1000),
-                    pid: null
-                };
-            }
+            // 移除前端状态重新创建，依赖后端数据
+            // if (!this.runningProcesses[gameKey]) {
+            //     // 尝试获取原始开始时间
+            //     const originalStartTime = this.getSignInOriginalStartTime(gameKey);
+            //     this.runningProcesses[gameKey] = {
+            //         name: this.config.games[gameKey]?.name || gameKey,
+            //         status: '签到进行中...',
+            //         startTime: originalStartTime || (Date.now() - result.duration - waitCount * 1000),
+            //         pid: null
+            //     };
+            // }
             
             // 检查是否真正完成
             if (this.isSignInReallyComplete(gameKey) || waitCount >= maxWaitTime) {
-                clearInterval(statusUpdateInterval);
-                
                 this.collectRealTimeLog(gameKey, `签到流程完全结束，总耗时: ${result.duration + waitCount * 1000}ms`);
                 
+                // 移除前端状态更新，由后端管理
                 // 更新最终状态
-                if (this.runningProcesses[gameKey]) {
-                    this.runningProcesses[gameKey].status = '签到完成';
-                    this.runningProcesses[gameKey].endTime = Date.now();
-                    this.updateRealTimeProcesses();
-                    
-                    // 5秒后移除进程状态
-                    setTimeout(() => {
-                        delete this.runningProcesses[gameKey];
-                        this.updateRealTimeProcesses();
-                    }, 5000);
-                }
+                // if (this.runningProcesses[gameKey]) {
+                //     this.runningProcesses[gameKey].status = '签到完成';
+                //     this.runningProcesses[gameKey].endTime = Date.now();
+                //     this.updateRealTimeProcesses();
+                //     
+                //     // 5秒后移除进程状态
+                //     setTimeout(() => {
+                //         delete this.runningProcesses[gameKey];
+                //         this.updateRealTimeProcesses();
+                //     }, 5000);
+                // }
                 
                 resolve(result);
             } else {
-                // 继续等待，更新状态显示
-                if (this.runningProcesses[gameKey]) {
-                    if (this.isSignInStillRunning(gameKey)) {
-                        this.runningProcesses[gameKey].status = '签到进行中...';
-                    } else {
-                        this.runningProcesses[gameKey].status = '等待签到完成...';
-                    }
-                    this.updateRealTimeProcesses();
-                }
+                // 继续等待，移除状态显示更新
+                // if (this.runningProcesses[gameKey]) {
+                //     if (this.isSignInStillRunning(gameKey)) {
+                //         this.runningProcesses[gameKey].status = '签到进行中...';
+                //     } else {
+                //         this.runningProcesses[gameKey].status = '等待签到完成...';
+                //     }
+                //     this.updateRealTimeProcesses();
+                // }
                 setTimeout(waitForSignInComplete, 1000);
             }
         };
@@ -611,12 +564,13 @@ class AutoMihoyoApp {
         
         this.collectRealTimeLog(gameKey, `执行完成，耗时: ${result.duration}ms`);
         
+        // 移除前端状态更新，由后端管理
         // 更新最终状态
-        if (this.runningProcesses[gameKey]) {
-            this.runningProcesses[gameKey].status = '执行完成';
-            this.runningProcesses[gameKey].endTime = Date.now();
-            this.updateRealTimeProcesses();
-        }
+        // if (this.runningProcesses[gameKey]) {
+        //     this.runningProcesses[gameKey].status = '执行完成';
+        //     this.runningProcesses[gameKey].endTime = Date.now();
+        //     this.updateRealTimeProcesses();
+        // }
         
         resolve(result);
     }
@@ -787,6 +741,31 @@ class AutoMihoyoApp {
         }, 5000);
     }
 
+    // 从后端获取并更新总运行时长
+    async updateTotalRuntimeFromBackend() {
+        try {
+            const result = await window.electronAPI.getProcessStatus();
+            if (result && !result.error) {
+                const totalRuntime = result.totalRuntime || 0; // 毫秒
+                const hours = Math.floor(totalRuntime / (1000 * 60 * 60));
+                const minutes = Math.floor((totalRuntime % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((totalRuntime % (1000 * 60)) / 1000);
+                
+                document.getElementById('totalRuntime').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // 调试信息（可选）
+                if (totalRuntime > 0 && totalRuntime % 30000 === 0) { // 每30秒打印一次
+                    console.log(`后端总运行时长: ${this.formatDuration(totalRuntime)}`);
+                }
+            }
+        } catch (error) {
+            console.error('获取后端运行时长失败:', error);
+            // 如果获取失败，显示默认值
+            document.getElementById('totalRuntime').textContent = '00:00:00';
+        }
+    }
+    
     // ===== 仪表盘相关方法 =====
     
     startDashboardUpdates() {
@@ -823,13 +802,8 @@ class AutoMihoyoApp {
         const activeProcessCount = runningProcesses.length;
         document.getElementById('activeProcessCount').textContent = activeProcessCount;
         
-        // 更新总运行时长（所有脚本执行时长的累计）
-        const totalRuntime = this.updateTotalScriptRuntime();
-        const hours = Math.floor(totalRuntime / (1000 * 60 * 60));
-        const minutes = Math.floor((totalRuntime % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((totalRuntime % (1000 * 60)) / 1000);
-        document.getElementById('totalRuntime').textContent = 
-            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        // 使用后端提供的总运行时长数据
+        this.updateTotalRuntimeFromBackend();
         
         // 更新今日签到状态
         const todaySignIn = this.getTodaySignInStatus();
@@ -1019,8 +993,9 @@ class AutoMihoyoApp {
             const result = await window.electronAPI.stopProcess(processKey);
             if (result.success) {
                 this.addActivity(`停止进程 ${processKey}`, 'warning');
-                delete this.runningProcesses[processKey];
-                this.updateDashboard();
+                // 移除前端状态管理，由后端管理
+                // delete this.runningProcesses[processKey];
+                // this.updateDashboard();
             }
         } catch (error) {
             this.addActivity(`停止进程失败: ${error.message}`, 'error');
@@ -1165,8 +1140,8 @@ class AutoMihoyoApp {
                 if (result && !result.error) {
                     const newProcesses = result.processes || {};
                     
-                    // 检查进程状态变化，更新运行时长统计
-                    this.updateScriptRuntimeTracking(newProcesses);
+                    // 移除前端时长统计，使用后端管理
+                    // this.updateScriptRuntimeTracking(newProcesses);
                     
                     this.runningProcesses = newProcesses;
                     this.updateStatusPanel();
@@ -1407,54 +1382,9 @@ class AutoMihoyoApp {
             this.realtimeLogs[gameKey] = this.realtimeLogs[gameKey].slice(-500);
         }
         
-        // 智能更新进程状态：如果检测到签到相关活动，保持运行状态
-        if (gameKey === 'mihoyoBBSTools') {
-            const keySignInPhrases = [
-                '正在进行', '正在获取', '正在签到', '正在执行',
-                '今天获得的奖励是', '今天已经签到过了', 'INFO',
-                '获得的奖励', '签到成功', '签到进行'
-            ];
-            
-            if (keySignInPhrases.some(phrase => logEntry.includes(phrase))) {
-                // 如果没有进程状态但检测到活动，重新创建，尝试获取原始开始时间
-                if (!this.runningProcesses[gameKey]) {
-                    const originalStartTime = this.getSignInOriginalStartTime(gameKey);
-                    this.runningProcesses[gameKey] = {
-                        name: this.config.games[gameKey]?.name || '米游社签到工具',
-                        startTime: originalStartTime || (Date.now() - 30000), // 使用原始时间或假设已经运行了30秒
-                        status: '签到进行中...',
-                        lastActivityTime: Date.now()
-                    };
-                    console.log('从实时日志重新创建进程状态');
-                    this.updateRealTimeProcesses();
-                } else {
-                    // 保留原始开始时间，只更新状态和活动时间
-                    this.runningProcesses[gameKey].status = '签到进行中...';
-                    this.runningProcesses[gameKey].lastActivityTime = Date.now();
-                }
-            }
-            
-            // 检测签到完成信号
-            const completionPhrases = [
-                '推送完毕', '推送结果：ok', 'dingrobot - 推送完毕'
-            ];
-            
-            if (completionPhrases.some(phrase => logEntry.includes(phrase))) {
-                if (this.runningProcesses[gameKey]) {
-                    this.runningProcesses[gameKey].status = '签到完成';
-                    this.runningProcesses[gameKey].endTime = Date.now();
-                    this.updateRealTimeProcesses();
-                    
-                    // 5秒后移除进程状态
-                    setTimeout(() => {
-                        if (this.runningProcesses[gameKey] && this.runningProcesses[gameKey].status === '签到完成') {
-                            delete this.runningProcesses[gameKey];
-                            this.updateRealTimeProcesses();
-                        }
-                    }, 5000);
-                }
-            }
-        }
+        // 移除前端的进程状态管理，改为依赖后端数据
+        // 前端只负责日志收集和显示，进程状态由后端 ProcessMonitor 管理
+        // 如果需要特殊的日志处理，可以在这里添加，但不修改进程状态
         
         // 只在特定条件下更新UI，避免过于频繁的更新
         if (this.currentTab === 'dashboard') {
@@ -1530,10 +1460,11 @@ class AutoMihoyoApp {
             // 收集日志
             this.collectRealTimeLog(gameKey, logEntry);
             
+            // 移除前端进程状态更新，依赖后端数据
             // 特殊处理签到任务的进程状态更新
-            if (gameKey === 'mihoyoBBSTools' && this.runningProcesses[gameKey]) {
-                this.updateSignInProcessStatus(gameKey, logEntry);
-            }
+            // if (gameKey === 'mihoyoBBSTools' && this.runningProcesses[gameKey]) {
+            //     this.updateSignInProcessStatus(gameKey, logEntry);
+            // }
             
             // 实时解析签到奖励（如果检测到奖励信息）
             if (gameKey === 'mihoyoBBSTools' && logEntry.includes('今天获得的奖励是')) {
@@ -1548,53 +1479,15 @@ class AutoMihoyoApp {
         });
     }
     
-    // 更新签到进程状态
+    // 更新签到进程状态 - 已简化，依赖后端状态管理
     updateSignInProcessStatus(gameKey, logEntry) {
-        if (!this.runningProcesses[gameKey]) {
-            // 如果进程状态被清除了，但还有活动日志，重新创建进程状态，使用原始开始时间
-            if (gameKey === 'mihoyoBBSTools') {
-                const originalStartTime = this.getSignInOriginalStartTime(gameKey);
-                this.runningProcesses[gameKey] = {
-                    name: this.config.games[gameKey]?.name || '米游社签到工具',
-                    startTime: originalStartTime || (Date.now() - 60000), // 使用原始时间或假设已经运行了1分钟前
-                    status: '签到进行中...',
-                    lastActivityTime: Date.now()
-                };
-                console.log('重新创建签到进程状态');
-            } else {
-                return;
-            }
-        }
+        // 移除前端进程状态管理，改为依赖后端数据
+        // 这个方法现在只用于兼容性，实际进程状态由后端 ProcessMonitor 管理
         
-        const executingPhrases = [
-            '正在进行', '正在获取', '正在签到', '正在执行',
-            '已获取', '今天已经签到过了', '今天获得的奖励是'
-        ];
+        // 可以在这里添加特殊的日志处理逻辑，但不修改进程状态
+        // 例如：记录特殊事件、触发通知等
         
-        const completionPhrases = [
-            '推送完毕', '推送结果：ok', 'dingrobot - 推送完毕'
-        ];
-        
-        if (executingPhrases.some(phrase => logEntry.includes(phrase))) {
-            this.runningProcesses[gameKey].status = '签到进行中...';
-            this.runningProcesses[gameKey].lastActivityTime = Date.now();
-            this.updateRealTimeProcesses();
-            console.log('检测到签到活动，更新状态为进行中');
-        } else if (completionPhrases.some(phrase => logEntry.includes(phrase))) {
-            this.runningProcesses[gameKey].status = '签到完成';
-            this.runningProcesses[gameKey].endTime = Date.now();
-            this.updateRealTimeProcesses();
-            console.log('检测到签到完成');
-            
-            // 5秒后移除进程状态
-            setTimeout(() => {
-                if (this.runningProcesses[gameKey]) {
-                    delete this.runningProcesses[gameKey];
-                    this.updateRealTimeProcesses();
-                    console.log('签到进程状态已清理');
-                }
-            }, 5000);
-        }
+        console.log(`签到日志: ${logEntry}`);
     }
     
     // 从实时日志解析签到奖励
@@ -1666,72 +1559,10 @@ class AutoMihoyoApp {
         `).join('');
     }
     
-    updateTotalScriptRuntime() {
-        // 计算当前正在运行的脚本的实时运行时长
-        let currentRuntime = 0;
-        Object.entries(this.runningProcesses || {}).forEach(([key, process]) => {
-            if (process.status && (
-                process.status.includes('正在') || 
-                process.status.includes('签到进行中') ||
-                process.status.includes('等待') ||
-                process.status === 'running'
-            )) {
-                if (this.scriptStartTimes[key]) {
-                    const currentDuration = Date.now() - this.scriptStartTimes[key];
-                    if (currentDuration > 0) {
-                        currentRuntime += currentDuration;
-                    }
-                }
-            }
-        });
-        
-        // 总时长 = 已完成的脚本时长 + 当前正在运行的脚本时长
-        return this.totalScriptRuntime + currentRuntime;
-    }
-
-    updateScriptRuntimeTracking(newProcesses) {
-        // 检查每个进程的状态变化
-        Object.entries(newProcesses).forEach(([key, newProcess]) => {
-            const oldProcess = this.runningProcesses ? this.runningProcesses[key] : null;
-            
-            const isNewProcessRunning = newProcess.status && (
-                newProcess.status.includes('正在') || 
-                newProcess.status.includes('签到进行中') ||
-                newProcess.status.includes('等待') ||
-                newProcess.status === 'running'
-            );
-            
-            const wasOldProcessRunning = oldProcess && oldProcess.status && (
-                oldProcess.status.includes('正在') || 
-                oldProcess.status.includes('签到进行中') ||
-                oldProcess.status.includes('等待') ||
-                oldProcess.status === 'running'
-            );
-            
-            // 进程开始运行
-            if (isNewProcessRunning && !wasOldProcessRunning) {
-                if (newProcess.startTime && !this.scriptStartTimes[key]) {
-                    this.scriptStartTimes[key] = newProcess.startTime;
-                    console.log(`脚本 ${key} 开始运行，开始时间: ${new Date(newProcess.startTime).toLocaleTimeString()}`);
-                }
-            }
-            
-            // 进程停止运行
-            if (!isNewProcessRunning && wasOldProcessRunning) {
-                if (this.scriptStartTimes[key]) {
-                    const endTime = newProcess.endTime || Date.now();
-                    const duration = endTime - this.scriptStartTimes[key];
-                    if (duration > 0) {
-                        this.totalScriptRuntime += duration;
-                        console.log(`脚本 ${key} 结束运行，本次运行时长: ${this.formatDuration(duration)}, 总累计时长: ${this.formatDuration(this.totalScriptRuntime)}`);
-                    }
-                    delete this.scriptStartTimes[key];
-                }
-            }
-        });
-        
-        this.runningProcesses = newProcesses;
-    }
+    // ========== 已移除的前端时长统计方法 ==========
+    // 这些方法已被移除，因为现在使用后端的时长管理系统
+    // updateTotalScriptRuntime() 和 updateScriptRuntimeTracking() 已被移除
+    // 现在使用 updateTotalRuntimeFromBackend() 方法从后端获取准确的时长数据
 
     formatDuration(ms) {
         const seconds = Math.floor(ms / 1000);
