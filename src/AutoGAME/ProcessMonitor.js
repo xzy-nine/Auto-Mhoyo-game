@@ -361,13 +361,13 @@ class ProcessMonitor {
     return new Promise(async (resolve, reject) => {
       const maxWaitTime = 60 * 60 * 1000; // 最大等待1小时
       const checkInterval = 5000; // 每5秒检查一次
-      const startTime = Date.now();
-      
+      const waitStartTime = Date.now(); // 等待启动的开始时间，不用于运行超时
+       
       await this.autoGame.writeLog(logFile, `开始监控进程: ${processName}`);
-      
-      // 等待进程启动
-      let processStarted = false;
-      let processStartTime = null;
+       
+       // 等待进程启动
+       let processStarted = false;
+       let processStartTime = null;
       
       // 等待最多30秒让进程启动
       await this.autoGame.writeLog(logFile, `等待进程 ${processName} 启动...`);
@@ -377,10 +377,10 @@ class ProcessMonitor {
         
         if (isRunning) {
           processStarted = true;
-          processStartTime = Date.now();
-          await this.autoGame.writeLog(logFile, `检测到进程 ${processName} 已启动`);
-          break;
-        }
+          processStartTime = Date.now(); // 记录实际启动时间
+           await this.autoGame.writeLog(logFile, `检测到进程 ${processName} 已启动`);
+           break;
+         }
         await this.autoGame.sleep(5000);
       }
       
@@ -396,7 +396,7 @@ class ProcessMonitor {
         pid: null, // 外部进程，没有子进程PID
         name: gameKey,
         processName: processName,
-        startTime: processStartTime,
+        startTime: processStartTime, // 基于检测到的启动时间
         childProcess: null,
         runTime: 0
       });
@@ -411,8 +411,8 @@ class ProcessMonitor {
           while (true) {
             const currentTime = Date.now();
             
-            // 检查是否超时
-            if (currentTime - startTime > maxWaitTime) {
+            // 检查是否超时，基于实际启动时间
+            if (currentTime - processStartTime > maxWaitTime) {
               this.runningProcesses.delete(gameKey);
               reject(new Error(`监控进程 ${processName} 超时（1小时）`));
               return;
@@ -456,34 +456,34 @@ class ProcessMonitor {
           
           // 进程已退出 - 设置结束时间
           const endTime = Date.now();
-          const totalRunTime = endTime - processStartTime;
+          const totalRunTime = endTime - processStartTime; // 仅计算启动后运行时长
           await this.autoGame.writeLog(logFile, `进程 ${processName} 已退出，总运行时间: ${this.formatDuration(totalRunTime / 1000)}`);
-          
-          // 更新进程信息，标记为已结束
-          const processInfo = this.runningProcesses.get(gameKey);
-          if (processInfo) {
-            processInfo.endTime = endTime;
-            processInfo.status = 'completed'; // 标记为正常完成，而不是简单的停止
-          }
-          
-          // 等待一小段时间后完成
-          await this.autoGame.sleep(3000);
-          resolve();
-          
-        } catch (error) {
-          // 发生错误时也要清理进程信息
-          const processInfo = this.runningProcesses.get(gameKey);
-          if (processInfo) {
-            processInfo.endTime = Date.now();
-            processInfo.status = 'stopped';
-          }
-          reject(error);
-        }
-      };
-      
-      // 开始监控循环
-      monitorLoop();
-    });
+           
+           // 更新进程信息，标记为已结束
+           const processInfo = this.runningProcesses.get(gameKey);
+           if (processInfo) {
+             processInfo.endTime = endTime;
+             processInfo.status = 'completed'; // 标记为正常完成，而不是简单的停止
+           }
+           
+           // 等待一小段时间后完成
+           await this.autoGame.sleep(3000);
+           resolve();
+           
+         } catch (error) {
+           // 发生错误时也要清理进程信息
+           const processInfo = this.runningProcesses.get(gameKey);
+           if (processInfo) {
+             processInfo.endTime = Date.now();
+             processInfo.status = 'stopped';
+           }
+           reject(error);
+         }
+       };
+       
+       // 开始监控循环
+       monitorLoop();
+     });
   }
 
   /**
