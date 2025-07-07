@@ -36,6 +36,52 @@
     100% { opacity: 1; }
 }
 
+/* 队列项闪烁效果 */
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* 队列进度条动画 */
+@keyframes progressFill {
+    0% { width: 0%; }
+    100% { width: var(--progress-width, 0%); }
+}
+
+/* 完成状态弹入效果 */
+@keyframes completedPop {
+    0% {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 队列项滑入效果 */
+@keyframes queueSlideIn {
+    0% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 等待时间倒计时效果 */
+@keyframes countdown {
+    0% { color: var(--warning-color); }
+    50% { color: var(--accent-primary); }
+    100% { color: var(--warning-color); }
+}
+
 /* 确保设置项中的所有直接子控件都能正确右对齐 */
 .setting-item > label.modern-toggle,
 .setting-item > .modern-toggle,
@@ -141,7 +187,6 @@
 .game-card,
 .status-card,
 .process-item,
-.activity-item,
 .signin-item,
 .setting-item {
     transition: all 0.3s ease;
@@ -156,7 +201,6 @@
 .content-area::-webkit-scrollbar,
 .logs-content::-webkit-scrollbar,
 .process-status-list::-webkit-scrollbar,
-.activity-list::-webkit-scrollbar,
 .signin-details::-webkit-scrollbar {
     width: 8px;
 }
@@ -164,7 +208,6 @@
 .content-area::-webkit-scrollbar-track,
 .logs-content::-webkit-scrollbar-track,
 .process-status-list::-webkit-scrollbar-track,
-.activity-list::-webkit-scrollbar-track,
 .signin-details::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
@@ -173,7 +216,6 @@
 .content-area::-webkit-scrollbar-thumb,
 .logs-content::-webkit-scrollbar-thumb,
 .process-status-list::-webkit-scrollbar-thumb,
-.activity-list::-webkit-scrollbar-thumb,
 .signin-details::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 4px;
@@ -182,7 +224,6 @@
 .content-area::-webkit-scrollbar-thumb:hover,
 .logs-content::-webkit-scrollbar-thumb:hover,
 .process-status-list::-webkit-scrollbar-thumb:hover,
-.activity-list::-webkit-scrollbar-thumb:hover,
 .signin-details::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
 }

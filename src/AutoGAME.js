@@ -240,6 +240,16 @@ class AutoGAME {
       await this.writeLog(logFile, `参数: ${(game.arguments || []).join(' ')}`);
       await this.writeLog(logFile, `应用目录: ${this.appDir}`);
       await this.writeLog(logFile, `进程平台: ${process.platform}`);
+      
+      // 检查监控模式并记录
+      const shouldMonitor = game.monitoring && game.monitoring.enabled &&
+        (game.monitoring.processName || game.monitoring.customProcessName);
+      if (shouldMonitor) {
+        const processName = game.monitoring.customProcessName || game.monitoring.processName;
+        await this.writeLog(logFile, `监控模式: 启用 - 将监控进程 "${processName}"`);
+      } else {
+        await this.writeLog(logFile, `监控模式: 关闭 - 使用阻塞运行，以程序退出为准`);
+      }
 
       return new Promise((resolve, reject) => {
         const workingDir = game.workingDir || path.dirname(game.path);
@@ -483,55 +493,124 @@ class AutoGAME {
                            (game.path && (game.path.includes('sign') || game.path.includes('签到')));
           
           if (isSignTask) {
-            // 签到类任务：严格根据退出码判断成功与否，不依赖日志输出
-            const isSuccess = (code === 0);
-            await this.writeLog(logFile, isSuccess ? '签到任务执行完成' : `签到任务执行失败，退出码: ${code}`);
-            
-            if (isSuccess) {
-              // 合并stdout和stderr输出，因为有些签到工具将信息输出到stderr
-              const fullOutput = (output + '\n' + errorOutput).trim();
+            // 签到类任务：检查是否配置了进程监控
+            const shouldMonitor = game.monitoring && game.monitoring.enabled &&
+              (game.monitoring.processName || game.monitoring.customProcessName);
               
-              // 立即解析签到奖励信息并显示到实时区域
-              if (fullOutput) {
-                this.parseAndDisplayRewards(fullOutput, game.name);
+            if (shouldMonitor) {
+              // 配置了进程监控的签到任务：监控指定进程
+              const processName = game.monitoring.customProcessName || game.monitoring.processName;
+              await this.writeLog(logFile, `签到任务配置了进程监控，忽略脚本退出码(${code})，开始监控进程: ${processName}`);
+              
+              try {
+                await this.processMonitor.waitForProcessCompletion(processName, gameKey, logFile);
+                await this.writeLog(logFile, `监控进程 ${processName} 已完成`);
+                
+                // 解析奖励信息
+                const fullOutput = (output + '\n' + errorOutput).trim();
+                if (fullOutput) {
+                  this.parseAndDisplayRewards(fullOutput, game.name);
+                }
+                
+                resolve({
+                  success: true,
+                  gameKey,
+                  gameName: game.name,
+                  duration: Date.now() - startTime,
+                  output: fullOutput || '签到执行完成',
+                  logFile,
+                  exitCode: code
+                });
+              } catch (monitorError) {
+                await this.writeLog(logFile, `监控进程失败: ${monitorError.message}`);
+                reject(new Error(`监控进程失败: ${monitorError.message}`));
               }
-              
-              resolve({
-                success: true,
-                gameKey,
-                gameName: game.name,
-                duration,
-                output: fullOutput || '签到执行完成',
-                logFile,
-                exitCode: code
-              });
             } else {
-              const errorMsg = `${game.name} 签到失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
-              await this.writeLog(logFile, `失败: ${errorMsg}`);
-              reject(new Error(errorMsg));
+              // 没有配置进程监控的签到任务：阻塞运行，根据退出码判断
+              const isSuccess = (code === 0);
+              await this.writeLog(logFile, isSuccess ? '签到脚本阻塞运行完成' : `签到脚本阻塞运行失败，退出码: ${code}`);
+              
+              if (isSuccess) {
+                // 合并stdout和stderr输出，因为有些签到工具将信息输出到stderr
+                const fullOutput = (output + '\n' + errorOutput).trim();
+                
+                // 立即解析签到奖励信息并显示到实时区域
+                if (fullOutput) {
+                  this.parseAndDisplayRewards(fullOutput, game.name);
+                }
+                
+                // 记录执行时长统计
+                this.processMonitor.totalAccumulatedRuntime += duration;
+                this.processMonitor.completedProcesses.set(gameKey, {
+                  name: game.name,
+                  runTime: duration,
+                  endTime: endTime,
+                  isBlockingTask: true,
+                  isSignTask: true
+                });
+                
+                // 更新进程状态为完成
+                const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+                if (processInfo) {
+                  processInfo.endTime = endTime;
+                  processInfo.status = 'completed';
+                  processInfo.runTime = duration;
+                  
+                  // 延迟清理进程状态，让前端有时间显示完成状态
+                  setTimeout(() => {
+                    this.processMonitor.runningProcesses.delete(gameKey);
+                  }, 3000);
+                }
+                
+                this.log(`签到脚本阻塞运行时长统计: +${this.processMonitor.formatDuration(duration / 1000)}, 累计总时长: ${this.processMonitor.formatDuration(this.processMonitor.totalAccumulatedRuntime / 1000)}`);
+                
+                resolve({
+                  success: true,
+                  gameKey,
+                  gameName: game.name,
+                  duration,
+                  output: fullOutput || '签到执行完成',
+                  logFile,
+                  exitCode: code
+                });
+              } else {
+                const errorMsg = `${game.name} 签到失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
+                await this.writeLog(logFile, `失败: ${errorMsg}`);
+                
+                // 更新失败任务的进程状态
+                const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+                if (processInfo) {
+                  processInfo.endTime = endTime;
+                  processInfo.status = 'failed';
+                  processInfo.runTime = duration;
+                  
+                  // 延迟清理进程状态，让前端有时间显示失败状态
+                  setTimeout(() => {
+                    this.processMonitor.runningProcesses.delete(gameKey);
+                  }, 5000);
+                }
+                
+                reject(new Error(errorMsg));
+              }
             }
             return;
           }
 
-          // 检查是否需要监控进程来判断任务完成
+          // 检查是否配置了进程监控
           const shouldMonitor = game.monitoring && game.monitoring.enabled &&
             (game.monitoring.processName || game.monitoring.customProcessName);
           
           // 判断任务是否完成的逻辑
           let isSuccess = false;
           
-          if (runAsScript || ext === '.py' || ext === '.js') {
-            // 脚本类程序：严格根据退出码判断，不依赖输出内容
-            isSuccess = (code === 0);
-            await this.writeLog(logFile, `脚本执行${isSuccess ? '成功' : '失败'}，退出码: ${code}`);
-          } else if (shouldMonitor) {
-            // 可执行文件且配置了监控进程：不依赖启动程序的退出码，直接监控目标进程
+          if (shouldMonitor) {
+            // 配置了进程监控：忽略启动程序的退出状态，直接监控目标进程
             const processName = game.monitoring.customProcessName || game.monitoring.processName;
-            await this.writeLog(logFile, `程序启动完成，开始监控进程: ${processName}`);
+            await this.writeLog(logFile, `配置了进程监控，忽略启动程序退出码(${code})，开始监控进程: ${processName}`);
             
-            // 对于需要监控的应用程序，直接开始监控目标进程，不依赖启动程序的退出码
+            // 启动程序可能已经退出，但我们只关心监控的目标进程
             try {
-              await this.waitForProcessCompletion(processName, gameKey, logFile);
+              await this.processMonitor.waitForProcessCompletion(processName, gameKey, logFile);
               await this.writeLog(logFile, `监控进程 ${processName} 已完成`);
               isSuccess = true;
             } catch (monitorError) {
@@ -540,9 +619,15 @@ class AutoGAME {
               return;
             }
           } else {
-            // 可执行文件但没有配置监控进程：严格根据退出码判断
+            // 没有配置进程监控：阻塞运行，以启动的脚本或应用结束作为计时标准
             isSuccess = (code === 0);
-            await this.writeLog(logFile, `可执行文件${isSuccess ? '成功' : '失败'}，退出码: ${code}`);
+            
+            if (runAsScript || ext === '.py' || ext === '.js') {
+              await this.writeLog(logFile, `脚本阻塞运行完成，退出码: ${code}`);
+            } else {
+              await this.writeLog(logFile, `应用阻塞运行完成，退出码: ${code}`);
+            }
+            
             if (!isSuccess && errorOutput.trim()) {
               await this.writeLog(logFile, `错误详情: ${errorOutput.trim()}`);
             }
@@ -552,6 +637,33 @@ class AutoGAME {
             // 解析奖励信息（主要针对签到脚本）
             if (output && (gameKey === 'mihoyoBBSTools' || gameKey.includes('sign'))) {
               this.parseAndDisplayRewards(output, game.name);
+            }
+            
+            // 对于没有配置进程监控的任务，记录执行时长统计
+            if (!shouldMonitor) {
+              this.processMonitor.totalAccumulatedRuntime += duration;
+              this.processMonitor.completedProcesses.set(gameKey, {
+                name: game.name,
+                runTime: duration,
+                endTime: endTime,
+                isBlockingTask: true // 标记为阻塞运行的任务
+              });
+              
+              const taskType = (runAsScript || ext === '.py' || ext === '.js') ? '脚本' : '应用';
+              this.log(`${taskType}阻塞运行时长统计: +${this.processMonitor.formatDuration(duration / 1000)}, 累计总时长: ${this.processMonitor.formatDuration(this.processMonitor.totalAccumulatedRuntime / 1000)}`);
+            }
+            
+            // 无论是否配置了进程监控，都需要清理进程状态
+            const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+            if (processInfo) {
+              processInfo.endTime = endTime;
+              processInfo.status = 'completed';
+              processInfo.runTime = duration;
+              
+              // 延迟清理进程状态，让前端有时间显示完成状态
+              setTimeout(() => {
+                this.processMonitor.runningProcesses.delete(gameKey);
+              }, 3000);
             }
             
             resolve({
@@ -566,6 +678,20 @@ class AutoGAME {
           } else {
             const errorMsg = `${game.name} 执行失败，退出码: ${code}${signal ? `, 信号: ${signal}` : ''}\n错误输出: ${errorOutput}`;
             await this.writeLog(logFile, `失败: ${errorMsg}`);
+            
+            // 清理失败任务的进程状态
+            const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+            if (processInfo) {
+              processInfo.endTime = endTime;
+              processInfo.status = 'failed';
+              processInfo.runTime = duration;
+              
+              // 延迟清理进程状态，让前端有时间显示失败状态
+              setTimeout(() => {
+                this.processMonitor.runningProcesses.delete(gameKey);
+              }, 5000);
+            }
+            
             reject(new Error(errorMsg));
           }
         });
@@ -577,6 +703,20 @@ class AutoGAME {
           await this.writeLog(logFile, `启动失败: ${formattedError}`);
           await this.writeLog(logFile, `错误代码: ${error.code || 'Unknown'}`);
           await this.writeLog(logFile, `错误堆栈: ${error.stack}`);
+          
+          // 清理启动失败任务的进程状态
+          const processInfo = this.processMonitor.runningProcesses.get(gameKey);
+          if (processInfo) {
+            processInfo.endTime = Date.now();
+            processInfo.status = 'error';
+            processInfo.runTime = Date.now() - startTime;
+            
+            // 延迟清理进程状态，让前端有时间显示错误状态
+            setTimeout(() => {
+              this.processMonitor.runningProcesses.delete(gameKey);
+            }, 5000);
+          }
+          
           reject(new Error(formattedError));
         });
 
@@ -589,7 +729,7 @@ class AutoGAME {
           }
         }, 2000);
 
-        // 存储进程信息用于监控（仅用于状态显示，具体监控逻辑在close事件中处理）
+        // 存储进程信息用于监控和状态显示
         const shouldMonitor = game.monitoring && game.monitoring.enabled &&
           (game.monitoring.processName || game.monitoring.customProcessName);
            
@@ -613,6 +753,25 @@ class AutoGAME {
               console.log(`将监控进程: ${game.name} -> ${processName} (启动后开始)`);
             }
           }
+        } else {
+          // 未开启进程监控的任务也需要在运行时显示状态
+          this.processMonitor.runningProcesses.set(gameKey, {
+            pid: childProcess.pid,
+            name: game.name,
+            processName: null, // 没有监控进程名
+            startTime: startTime,
+            childProcess: childProcess,
+            runTime: 0,
+            isBlockingTask: true, // 标记为阻塞运行任务
+            isSignInTask: (gameKey === 'mihoyoBBSTools' || 
+                          gameKey.includes('sign') || 
+                          game.name.includes('签到') ||
+                          (game.path && (game.path.includes('sign') || game.path.includes('签到')))),
+            status: 'running'
+          });
+          console.log(`已启动阻塞运行任务: ${game.name} -> PID: ${childProcess.pid || 'Unknown'}`);
+          this.log(`${game.name}: 阻塞运行模式启动，PID: ${childProcess.pid || 'Unknown'}`);
+          this.sendRealTimeLog(gameKey, `阻塞运行模式启动，PID: ${childProcess.pid || 'Unknown'}`);
         }
       });
     } catch (error) {
@@ -722,20 +881,8 @@ class AutoGAME {
 
   startProcessMonitoring() {
     if (this.processMonitor) {
-      clearInterval(this.processMonitor);
+      this.processMonitor.startProcessMonitoring();
     }
-
-    // 使用配置中的检查间隔，默认5秒
-    const checkInterval = this.config?.processMonitoring?.checkInterval || 5000;
-    console.log(`进程监控已启动，检查间隔: ${checkInterval}ms`);
-
-    this.processMonitor = setInterval(async () => {
-      try {
-        await this.updateProcessStatus();
-      } catch (error) {
-        console.error('Process monitoring error:', error);
-      }
-    }, checkInterval);
   }
 
   stopProcessMonitoring() {
@@ -780,7 +927,25 @@ class AutoGAME {
   }
   
   getProcessStatus() {
-    return this.processMonitor.getMonitoringStatus();
+    const monitoringStatus = this.processMonitor.getMonitoringStatus();
+    
+    // 将后端的进程数据转换为前端兼容的格式
+    const processes = {};
+    monitoringStatus.runningProcesses.forEach(process => {
+      processes[process.gameKey] = {
+        name: process.name,
+        processName: process.processName,
+        startTime: process.startTime,
+        endTime: process.endTime,
+        status: process.status,
+        pid: process.pid
+      };
+    });
+    
+    return {
+      ...monitoringStatus,
+      processes: processes
+    };
   }
   
   async getSignInDetails() {
@@ -1034,13 +1199,6 @@ class AutoGAME {
   }
 
   /**
-   * 检查OCR任务冲突 - 委托给 ProcessMonitor
-   */
-  isOCRTaskRunning() {
-    return this.processMonitor.isOCRTaskRunning();
-  }
-
-  /**
    * 智能等待时间计算 - 委托给 ProcessMonitor
    */
   calculateSmartWaitTime(gameKey) {
@@ -1048,19 +1206,12 @@ class AutoGAME {
   }
 
   /**
-   * 执行单个游戏任务（状态检查）
+   * 执行单个游戏任务
    */
   async executeGameTask(gameKey) {
     const game = this.config.games[gameKey];
     if (!game || !game.enabled) {
       throw new Error(`游戏 ${gameKey} 未启用或不存在`);
-    }
-
-    // 检查OCR任务冲突
-    const ocrStatus = this.isOCRTaskRunning();
-    if (ocrStatus.isRunning) {
-      const waitTime = this.calculateSmartWaitTime(gameKey);
-      throw new Error(`检测到OCR任务正在运行 (${ocrStatus.processName}，已运行${ocrStatus.runTime}秒)，预计需等待${Math.floor(waitTime/60000)}分钟`);
     }
 
     return this.runSingleGame(gameKey);
@@ -1087,27 +1238,31 @@ class AutoGAME {
       }
 
       this.log(`开始批量执行 ${enabledGames.length} 个游戏任务`);
+      
+      // 先将所有任务添加到队列中，不等待执行结果
+      const taskPromises = [];
+      for (const [gameKey, game] of enabledGames) {
+        this.log(`添加任务到队列: ${game.name} (${gameKey})`);
+        taskPromises.push(this.addToQueue(gameKey, 0));
+      }
+      
+      // 等待所有任务完成
       const results = [];
       const errors = [];
-
-      // 将所有任务加入队列（优先级为0，按顺序执行）
-      for (const [gameKey, game] of enabledGames) {
+      
+      for (let i = 0; i < taskPromises.length; i++) {
+        const [gameKey, game] = enabledGames[i];
         try {
-          const result = await this.addToQueue(gameKey, 0);
+          const result = await taskPromises[i];
           results.push(result);
-          
-          // 使用智能等待时间
-          const smartWaitTime = this.calculateSmartWaitTime(gameKey);
-          if (smartWaitTime > 0) {
-            this.log(`等待 ${Math.floor(smartWaitTime/60000)} 分钟后执行下一个任务...`);
-            await this.sleep(smartWaitTime);
-          }
+          this.log(`任务完成: ${game.name} (${gameKey})`);
         } catch (error) {
           errors.push({
             gameKey,
             gameName: game.name || gameKey,
             error: error.message
           });
+          this.log(`任务失败: ${game.name} (${gameKey}) - ${error.message}`);
         }
       }
 

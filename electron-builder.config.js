@@ -5,6 +5,14 @@
 
 const path = require('path');
 
+// 生成时间戳 (HHMM格式)
+function getTimeStamp() {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  return `${hours}${minutes}`;
+}
+
 module.exports = {
   appId: 'com.automihoyo.all',
   productName: 'AUTO-mihoyo-all',
@@ -80,7 +88,7 @@ module.exports = {
   },
   
   portable: {
-    artifactName: '${productName}-${version}-portable.${ext}',
+    artifactName: `\${productName}-\${version}-${getTimeStamp()}.\${ext}`,
     requestedExecutionLevel: 'asInvoker'
   },
   

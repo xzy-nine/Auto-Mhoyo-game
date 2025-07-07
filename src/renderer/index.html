@@ -130,10 +130,6 @@
                         <span>启用游戏:</span>
                         <span id="enabledGames" class="status-number">0</span>
                     </div>
-                    <div class="status-item">
-                        <span>运行中:</span>
-                        <span id="runningProcesses" class="status-number">0</span>
-                    </div>
                     
                     <!-- 运行状态块 -->
                     <div class="status-overview">
@@ -170,11 +166,11 @@
                         </div>
                     </div>
                     
-                    <!-- 实时进程状态 -->
-                    <div class="status-overview" id="sidebarProcessSection">
-                        <h4>🔄 实时进程状态</h4>
-                        <div id="sidebarRealTimeProcesses" class="process-status-list-sidebar">
-                            <!-- 进程状态将在这里显示 -->
+                    <!-- 任务队列状态 -->
+                    <div class="status-overview" id="sidebarQueueSection">
+                        <h4>📋 任务队列</h4>
+                        <div id="queueStatus" class="queue-status-container">
+                            <!-- 队列状态将在这里显示 -->
                         </div>
                     </div>
                     
@@ -206,15 +202,6 @@
                                 <button id="quickStartGenshin" class="btn btn-primary">原神一条龙</button>
                                 <button id="quickStartStarRail" class="btn btn-primary">星铁一条龙</button>
                                 <button id="quickStartZenless" class="btn btn-primary">绝区零一条龙</button>
-                                <button id="quickStopAll" class="btn btn-danger">🛑 停止全部</button>
-                            </div>
-                        </div>
-
-                        <!-- 最近活动 -->
-                        <div class="dashboard-section">
-                            <h3>📝 最近活动</h3>
-                            <div id="recentActivity" class="activity-list">
-                                <div class="empty-state">暂无活动记录</div>
                             </div>
                         </div>
 
@@ -386,6 +373,7 @@
         });
     </script>
     <script src="theme-manager.js"></script>
+    <script src="app/RewardParser.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

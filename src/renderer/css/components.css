@@ -371,3 +371,475 @@
 .modern-input:focus {
     border-color: var(--color-info);
 }
+
+/* 任务队列状态样式 */
+.queue-status-container {
+    margin-top: 0.5rem;
+}
+
+/* 进度总览 */
+.queue-progress-overview {
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.progress-stats {
+    font-size: 0.8rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success-color) 0%, #4caf50 100%);
+    border-radius: 4px;
+    transition: width 0.6s ease;
+    animation: progressFill 0.8s ease-out;
+}
+
+.progress-percentage {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    animation: queueSlideIn 0.5s ease-out;
+}
+
+.queue-current-task {
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    color: white;
+}
+
+/* 默认游戏任务背景 */
+.queue-current-task {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 签到任务背景 */
+.queue-current-task.signin-task {
+    background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+}
+
+/* 阻塞任务背景 */
+.queue-current-task.blocking-task {
+    background: linear-gradient(135deg, #ff7043 0%, #ff8a65 100%);
+}
+
+/* 监控任务背景 */
+.queue-current-task.monitored-task {
+    background: linear-gradient(135deg, #26a69a 0%, #4db6ac 100%);
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.task-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.task-status.running {
+    background: rgba(46, 204, 113, 0.8);
+}
+
+.task-type {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.task-name {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.task-timing {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.task-runtime, .task-estimated {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.task-estimated {
+    opacity: 0.7;
+}
+
+.task-process {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.queue-waiting-tasks {
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.queue-header {
+    margin-bottom: 8px;
+}
+
+.queue-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.queue-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    animation: queueSlideIn 0.4s ease-out;
+    position: relative;
+}
+
+.queue-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.queue-position {
+    font-weight: 600;
+    color: var(--accent-primary);
+    min-width: 20px;
+    margin-top: 2px;
+}
+
+.queue-task-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.queue-task-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.queue-task-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.task-badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.task-badge.signin {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    color: white;
+}
+
+.task-badge.blocking {
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+    color: white;
+}
+
+/* 特殊队列项样式 */
+.queue-item.signin-queue-item {
+    border-left: 3px solid var(--success-color);
+}
+
+.queue-item.blocking-queue-item {
+    border-left: 3px solid var(--error-color);
+}
+
+.queue-timing {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.queue-wait-time {
+    color: var(--warning-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    animation: countdown 2s infinite ease-in-out;
+}
+
+.queue-estimate {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+.queue-more {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* 已完成任务样式 */
+.queue-completed-tasks {
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.completed-header {
+    margin-bottom: 8px;
+}
+
+.completed-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+.completed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.completed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    animation: completedPop 0.5s ease-out;
+}
+
+.completed-item.success {
+    background: linear-gradient(90deg, rgba(76, 175, 80, 0.1) 0%, var(--bg-secondary) 100%);
+    border-left: 3px solid var(--success-color);
+}
+
+.completed-item.failed {
+    background: linear-gradient(90deg, rgba(244, 67, 54, 0.1) 0%, var(--bg-secondary) 100%);
+    border-left: 3px solid var(--error-color);
+}
+
+.completed-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.completed-status {
+    font-size: 0.9rem;
+    margin-top: 2px;
+}
+
+.completed-task-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.completed-task-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.completed-task-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.completed-task-type {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-secondary);
+}
+
+.completed-error {
+    font-size: 0.7rem;
+    color: var(--error-color);
+    font-style: italic;
+    margin-top: 2px;
+    opacity: 0.8;
+}
+
+.completed-timing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.completed-time {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+.completed-duration {
+    color: var(--accent-primary);
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.queue-idle {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-secondary);
+}
+
+.idle-status {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: var(--success-color);
+}
+
+.idle-message {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* 任务类型标签 */
+.task-type-badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+.task-type-badge.sign-in {
+    background: linear-gradient(45deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.task-type-badge.game {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+}
+
+/* 运行按钮特殊状态样式 */
+#runAllBtn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    min-width: 120px; /* 固定最小宽度，避免文字变化时的抖动 */
+}
+
+#runAllBtn:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+#runAllBtn:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 为不同状态添加不同的背景色 */
+#runAllBtn[data-state="starting"] {
+    background: linear-gradient(45deg, #f39c12, #e67e22);
+    animation: pulse 1.5s infinite;
+}
+
+#runAllBtn[data-state="executing"] {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    animation: pulse 2s infinite;
+}
+
+#runAllBtn[data-state="completed"] {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    animation: success-pulse 0.6s ease-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes success-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 状态变化时的过渡效果 */
+#runAllBtn {
+    transition: background 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
