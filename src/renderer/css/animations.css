@@ -36,6 +36,52 @@
     100% { opacity: 1; }
 }
 
+/* 队列项闪烁效果 */
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* 队列进度条动画 */
+@keyframes progressFill {
+    0% { width: 0%; }
+    100% { width: var(--progress-width, 0%); }
+}
+
+/* 完成状态弹入效果 */
+@keyframes completedPop {
+    0% {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 队列项滑入效果 */
+@keyframes queueSlideIn {
+    0% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 等待时间倒计时效果 */
+@keyframes countdown {
+    0% { color: var(--warning-color); }
+    50% { color: var(--accent-primary); }
+    100% { color: var(--warning-color); }
+}
+
 /* 确保设置项中的所有直接子控件都能正确右对齐 */
 .setting-item > label.modern-toggle,
 .setting-item > .modern-toggle,

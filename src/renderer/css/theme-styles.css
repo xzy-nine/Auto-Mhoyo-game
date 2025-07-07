@@ -38,6 +38,16 @@
     --color-info: #3498db;
     --color-info-bg: #e3f2fd;
     
+    /* 队列状态颜色 */
+    --success-color: #27ae60;
+    --error-color: #e74c3c;
+    --warning-color: #f39c12;
+    --accent-primary: #3498db;
+    --bg-hover: #f1f3f4;
+    
+    /* 卡片背景 */
+    --card-bg: #ffffff;
+    
     /* 按钮渐变色 */
     --btn-primary-bg: linear-gradient(135deg, #3498db, #2980b9);
     --btn-secondary-bg: linear-gradient(135deg, #95a5a6, #7f8c8d);
@@ -92,6 +102,16 @@ body.dark-theme {
     --color-warning-bg: rgba(243, 156, 18, 0.2);
     --color-info: #3498db;
     --color-info-bg: rgba(52, 152, 219, 0.2);
+    
+    /* 队列状态颜色 */
+    --success-color: #2ecc71;
+    --error-color: #e74c3c;
+    --warning-color: #f39c12;
+    --accent-primary: #3498db;
+    --bg-hover: #3a3a3a;
+    
+    /* 卡片背景 */
+    --card-bg: #2d2d2d;
     
     /* 按钮渐变色保持不变，因为它们本身就有好的对比度 */
     --btn-primary-bg: linear-gradient(135deg, #3498db, #2980b9);
