@@ -11,7 +11,6 @@ class NodeJSRunner {
 
   async run() {
     try {
-      console.log('🎮 AUTO-mihoyo-all Node.js版本');
       console.log('================================');
       
       if (this.args.includes('--help') || this.args.includes('-h')) {

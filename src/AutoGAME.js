@@ -114,7 +114,7 @@ class AutoGAME {
           "waitTime": 5000,
           "monitoring": {
             "enabled": false,
-            "processName": "python.exe",
+            "processName": "",
             "customProcessName": ""
           }
         },
@@ -126,8 +126,8 @@ class AutoGAME {
           "arguments": [],
           "waitTime": 60000,
           "monitoring": {
-            "enabled": false,
-            "processName": "March7thAssistant.exe",
+            "enabled": true,
+            "processName": "HonkaiStarRail.exe",
             "customProcessName": ""
           }
         },
@@ -139,8 +139,8 @@ class AutoGAME {
           "arguments": [],
           "waitTime": 60000,
           "monitoring": {
-            "enabled": false,
-            "processName": "OneDragon Launcher.exe",
+            "enabled": true,
+            "processName": "ZenlessZoneZero.exe",
             "customProcessName": ""
           }
         },
@@ -154,8 +154,8 @@ class AutoGAME {
           ],
           "waitTime": 60000,
           "monitoring": {
-            "enabled": false,
-            "processName": "BetterGI.exe",
+            "enabled": true,
+            "processName": "YuanShen.exe",
             "customProcessName": ""
           }
         }
